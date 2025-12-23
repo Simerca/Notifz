@@ -1,0 +1,48 @@
+{
+  "name": "@localnotification/sdk-react-native",
+  "version": "1.0.0",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsup src/index.ts --format cjs,esm --dts",
+    "dev": "tsup src/index.ts --format cjs,esm --dts --watch",
+    "clean": "rm -rf dist"
+  },
+  "peerDependencies": {
+    "expo-notifications": ">=0.20.0",
+    "react": ">=18.0.0",
+    "react-native": ">=0.70.0"
+  },
+  "peerDependenciesMeta": {
+    "expo-notifications": {
+      "optional": true
+    }
+  },
+  "dependencies": {
+    "@localnotification/shared": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.17",
+    "expo-notifications": "^0.29.13",
+    "react": "^18.3.1",
+    "react-native": "^0.76.5",
+    "tsup": "^8.3.5",
+    "typescript": "^5.7.2"
+  },
+  "keywords": [
+    "react-native",
+    "local-notification",
+    "notifications",
+    "expo"
+  ],
+  "license": "MIT"
+}
+

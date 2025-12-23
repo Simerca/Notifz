@@ -1,0 +1,96 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model App {
+  id            String         @id
+  name          String
+  apiKey        String         @unique
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  notifications Notification[]
+  users         User[]
+  segments      Segment[]
+  sessions      Session[]
+}
+
+model Notification {
+  id         String   @id
+  appId      String
+  name       String
+  title      String
+  body       String
+  data       String?
+  trigger    String
+  conditions String?
+  segmentId  String?
+  enabled    Boolean  @default(true)
+  priority   String   @default("default")
+  badge      Int?
+  sound      String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  version    Int      @default(1)
+
+  app     App      @relation(fields: [appId], references: [id], onDelete: Cascade)
+  segment Segment? @relation(fields: [segmentId], references: [id], onDelete: SetNull)
+
+  @@index([appId])
+  @@index([appId, enabled])
+  @@index([segmentId])
+}
+
+model User {
+  id         String    @id
+  appId      String
+  externalId String
+  properties String
+  firstSeen  DateTime  @default(now())
+  lastSeen   DateTime  @default(now())
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  app      App       @relation(fields: [appId], references: [id], onDelete: Cascade)
+  sessions Session[]
+
+  @@unique([appId, externalId])
+  @@index([appId])
+  @@index([appId, lastSeen])
+}
+
+model Segment {
+  id          String   @id
+  appId       String
+  name        String
+  description String?
+  rules       String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  app           App            @relation(fields: [appId], references: [id], onDelete: Cascade)
+  notifications Notification[]
+
+  @@index([appId])
+}
+
+model Session {
+  id        String   @id
+  appId     String
+  userId    String
+  startedAt DateTime @default(now())
+  endedAt   DateTime?
+  duration  Int?
+  date      String
+
+  app  App  @relation(fields: [appId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([appId, date])
+  @@index([userId])
+  @@index([appId, userId, date])
+}
