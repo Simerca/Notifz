@@ -10,5 +10,10 @@ export type {
   Condition,
   Trigger,
   Segment,
-} from '@aspect-music/localnotification-shared';
-
+  SegmentInfo,
+  TriggerType,
+  RecurrenceInterval,
+  ConditionOperator,
+  Priority,
+  Recurrence,
+} from './types';

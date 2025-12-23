@@ -1,11 +1,10 @@
-import type { SDKConfig, UserContext, Notification, SyncResponse, Condition, UserProperties } from '@aspect-music/localnotification-shared';
+import type { SDKConfig, UserContext, Notification, SyncResponse, Condition, UserProperties, SegmentInfo } from './types';
 import * as ExpoNotifications from 'expo-notifications';
 import { Platform, AppState, type AppStateStatus } from 'react-native';
 
-interface SegmentInfo {
-  id: string;
-  name: string;
-  rules: Condition[];
+interface SessionResponse {
+  sessionId?: string;
+  success?: boolean;
 }
 
 export class LocalNotificationSDK {
@@ -86,7 +85,7 @@ export class LocalNotificationSDK {
     if (!this.userContext.userId || this.currentSessionId) return;
 
     try {
-      const response = await this.sendRequest(`/api/analytics/${this.config.appId}/session`, {
+      const response = await this.sendRequest<SessionResponse>(`/api/analytics/${this.config.appId}/session`, {
         method: 'POST',
         body: JSON.stringify({
           userId: this.userContext.userId,
@@ -107,7 +106,7 @@ export class LocalNotificationSDK {
     if (!this.userContext.userId || !this.currentSessionId) return;
 
     try {
-      await this.sendRequest(`/api/analytics/${this.config.appId}/session`, {
+      await this.sendRequest<SessionResponse>(`/api/analytics/${this.config.appId}/session`, {
         method: 'POST',
         body: JSON.stringify({
           userId: this.userContext.userId,
@@ -124,7 +123,7 @@ export class LocalNotificationSDK {
   }
 
   private async sendRequest<T>(path: string, options?: RequestInit): Promise<T> {
-    const headers: HeadersInit = { 'Content-Type': 'application/json' };
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
     if (this.config.apiKey) {
       headers['X-API-Key'] = this.config.apiKey;
     }
@@ -294,7 +293,7 @@ export class LocalNotificationSDK {
       body,
       data: notification.data as Record<string, unknown> | undefined,
       sound: notification.sound ?? 'default',
-      badge: notification.badge,
+      ...(notification.badge !== undefined && notification.badge !== null ? { badge: notification.badge } : {}),
     };
 
     let trigger: ExpoNotifications.NotificationTriggerInput = null;
@@ -304,7 +303,10 @@ export class LocalNotificationSDK {
         if (notification.trigger.scheduledAt) {
           const scheduledDate = new Date(notification.trigger.scheduledAt);
           if (scheduledDate > new Date()) {
-            trigger = { date: scheduledDate };
+            trigger = {
+              type: ExpoNotifications.SchedulableTriggerInputTypes.DATE,
+              date: scheduledDate,
+            };
           }
         }
         break;
@@ -316,12 +318,14 @@ export class LocalNotificationSDK {
 
           if (interval === 'daily') {
             trigger = {
+              type: ExpoNotifications.SchedulableTriggerInputTypes.CALENDAR,
               hour: hours,
               minute: minutes,
               repeats: true,
             };
           } else if (interval === 'weekly' && daysOfWeek?.length) {
             trigger = {
+              type: ExpoNotifications.SchedulableTriggerInputTypes.CALENDAR,
               weekday: daysOfWeek[0] + 1,
               hour: hours,
               minute: minutes,
@@ -329,6 +333,7 @@ export class LocalNotificationSDK {
             };
           } else if (interval === 'monthly' && dayOfMonth) {
             trigger = {
+              type: ExpoNotifications.SchedulableTriggerInputTypes.CALENDAR,
               day: dayOfMonth,
               hour: hours,
               minute: minutes,
@@ -373,7 +378,7 @@ export class LocalNotificationSDK {
         body,
         data: notification.data as Record<string, unknown> | undefined,
         sound: notification.sound ?? 'default',
-        badge: notification.badge,
+        ...(notification.badge !== undefined && notification.badge !== null ? { badge: notification.badge } : {}),
       },
       trigger: null,
     });

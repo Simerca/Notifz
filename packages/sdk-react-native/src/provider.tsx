@@ -1,12 +1,6 @@
 import React, { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react';
-import type { SDKConfig, UserContext, Notification, UserProperties } from '@aspect-music/localnotification-shared';
+import type { SDKConfig, UserContext, Notification, UserProperties, SegmentInfo } from './types';
 import { LocalNotificationSDK } from './sdk';
-
-interface SegmentInfo {
-  id: string;
-  name: string;
-  rules: { field: string; operator: string; value: unknown }[];
-}
 
 interface LocalNotificationContextValue {
   sdk: LocalNotificationSDK | null;
