@@ -4,26 +4,50 @@
 
 @layer base {
   :root {
-    --background: 0 0% 3%;
-    --foreground: 0 0% 98%;
-    --card: 0 0% 5%;
-    --card-foreground: 0 0% 98%;
-    --popover: 0 0% 5%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 142 76% 45%;
-    --primary-foreground: 0 0% 2%;
-    --secondary: 0 0% 12%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 0 0% 12%;
-    --muted-foreground: 0 0% 60%;
-    --accent: 0 0% 12%;
-    --accent-foreground: 0 0% 98%;
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 15%;
-    --input: 0 0% 15%;
-    --ring: 142 76% 45%;
-    --radius: 0.5rem;
+    --background: 0 0% 99%;
+    --foreground: 220 13% 13%;
+    --card: 0 0% 100%;
+    --card-foreground: 220 13% 13%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 13% 13%;
+    --primary: 220 13% 13%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 220 10% 96%;
+    --secondary-foreground: 220 13% 13%;
+    --muted: 220 10% 96%;
+    --muted-foreground: 220 10% 46%;
+    --accent: 220 10% 94%;
+    --accent-foreground: 220 13% 13%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 220 10% 91%;
+    --input: 220 10% 91%;
+    --ring: 220 13% 13%;
+    --radius: 0.625rem;
+    --sidebar: 220 10% 98%;
+  }
+
+  .dark {
+    --background: 222 14% 7%;
+    --foreground: 210 20% 96%;
+    --card: 222 14% 9%;
+    --card-foreground: 210 20% 96%;
+    --popover: 222 14% 9%;
+    --popover-foreground: 210 20% 96%;
+    --primary: 210 20% 96%;
+    --primary-foreground: 222 14% 7%;
+    --secondary: 222 10% 14%;
+    --secondary-foreground: 210 20% 96%;
+    --muted: 222 10% 14%;
+    --muted-foreground: 220 10% 54%;
+    --accent: 222 10% 16%;
+    --accent-foreground: 210 20% 96%;
+    --destructive: 0 62% 55%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 222 10% 16%;
+    --input: 222 10% 16%;
+    --ring: 210 20% 96%;
+    --sidebar: 222 14% 8%;
   }
 }
 
@@ -31,9 +55,44 @@
   * {
     @apply border-border;
   }
+  
   body {
-    @apply bg-background text-foreground;
-    font-feature-settings: "rlig" 1, "calt" 1;
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1, "ss01" 1;
+  }
+
+  ::selection {
+    @apply bg-foreground/10;
   }
 }
 
+@layer components {
+  .sidebar-link {
+    @apply flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-150;
+  }
+  
+  .sidebar-link-active {
+    @apply bg-foreground text-background;
+  }
+  
+  .sidebar-link-inactive {
+    @apply text-muted-foreground hover:text-foreground hover:bg-accent;
+  }
+}
+
+@layer utilities {
+  .animate-fade-in {
+    animation: fadeIn 0.2s ease-out;
+  }
+  
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(4px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}

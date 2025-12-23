@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { prisma } from '../db';
-import type { SyncResponse, Notification } from '@localnotification/shared';
+import type { SyncResponse, Notification, Condition } from '@localnotification/shared';
 
 export const syncRouter = new Hono();
 
@@ -13,6 +13,7 @@ function serializeNotification(n: {
   data: string | null;
   trigger: string;
   conditions: string | null;
+  segmentId: string | null;
   enabled: boolean;
   priority: string;
   badge: number | null;
@@ -30,6 +31,7 @@ function serializeNotification(n: {
     data: n.data ? JSON.parse(n.data) : undefined,
     trigger: JSON.parse(n.trigger),
     conditions: n.conditions ? JSON.parse(n.conditions) : undefined,
+    segmentId: n.segmentId ?? undefined,
     enabled: n.enabled,
     priority: n.priority as 'low' | 'default' | 'high',
     badge: n.badge ?? undefined,
@@ -53,15 +55,26 @@ syncRouter.get('/:appId', async (c) => {
     return c.json({ error: 'Invalid API key' }, 401);
   }
 
-  const notifications = await prisma.notification.findMany({
-    where: { appId, enabled: true },
-    orderBy: { createdAt: 'desc' },
-  });
+  const [notifications, segments] = await Promise.all([
+    prisma.notification.findMany({
+      where: { appId, enabled: true },
+      orderBy: { createdAt: 'desc' },
+    }),
+    prisma.segment.findMany({
+      where: { appId },
+      orderBy: { createdAt: 'desc' },
+    }),
+  ]);
 
   const maxVersion = notifications.reduce((max, n) => Math.max(max, n.version), 0);
 
   const response: SyncResponse = {
     notifications: notifications.map(serializeNotification),
+    segments: segments.map((s) => ({
+      id: s.id,
+      name: s.name,
+      rules: JSON.parse(s.rules) as Condition[],
+    })),
     serverTime: new Date().toISOString(),
     version: maxVersion,
   };
@@ -83,23 +96,33 @@ syncRouter.get('/:appId/delta', async (c) => {
     return c.json({ error: 'Invalid API key' }, 401);
   }
 
-  const notifications = await prisma.notification.findMany({
-    where: {
-      appId,
-      enabled: true,
-      version: { gt: sinceVersion },
-    },
-    orderBy: { createdAt: 'desc' },
-  });
+  const [notifications, segments] = await Promise.all([
+    prisma.notification.findMany({
+      where: {
+        appId,
+        enabled: true,
+        version: { gt: sinceVersion },
+      },
+      orderBy: { createdAt: 'desc' },
+    }),
+    prisma.segment.findMany({
+      where: { appId },
+      orderBy: { createdAt: 'desc' },
+    }),
+  ]);
 
   const maxVersion = notifications.reduce((max, n) => Math.max(max, n.version), sinceVersion);
 
   const response: SyncResponse = {
     notifications: notifications.map(serializeNotification),
+    segments: segments.map((s) => ({
+      id: s.id,
+      name: s.name,
+      rules: JSON.parse(s.rules) as Condition[],
+    })),
     serverTime: new Date().toISOString(),
     version: maxVersion,
   };
 
   return c.json(response);
 });
-

@@ -1,4 +1,13 @@
-import type { Notification, CreateNotificationInput, UpdateNotificationInput } from '@localnotification/shared';
+import type {
+  Notification,
+  CreateNotificationInput,
+  UpdateNotificationInput,
+  Segment,
+  CreateSegmentInput,
+  UpdateSegmentInput,
+  User,
+  AnalyticsOverview,
+} from '@localnotification/shared';
 
 const API_BASE = '/api';
 
@@ -22,6 +31,20 @@ export interface App {
   updatedAt: string;
 }
 
+export interface UsersResponse {
+  users: User[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
+export interface SegmentUsersResponse {
+  users: User[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
 export const api = {
   apps: {
     list: () => request<App[]>('/apps'),
@@ -40,5 +63,30 @@ export const api = {
     toggle: (id: string) => request<Notification>(`/notifications/${id}/toggle`, { method: 'POST' }),
     duplicate: (id: string) => request<Notification>(`/notifications/${id}/duplicate`, { method: 'POST' }),
   },
+  segments: {
+    list: (appId?: string) => request<Segment[]>(`/segments${appId ? `?appId=${appId}` : ''}`),
+    get: (id: string) => request<Segment>(`/segments/${id}`),
+    create: (data: CreateSegmentInput) => request<Segment>('/segments', { method: 'POST', body: JSON.stringify(data) }),
+    update: (id: string, data: UpdateSegmentInput) => request<Segment>(`/segments/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+    delete: (id: string) => request<{ success: boolean }>(`/segments/${id}`, { method: 'DELETE' }),
+    getUsers: (id: string, limit = 50, offset = 0) => request<SegmentUsersResponse>(`/segments/${id}/users?limit=${limit}&offset=${offset}`),
+    getCount: (id: string) => request<{ count: number }>(`/segments/${id}/count`),
+  },
+  users: {
+    list: (appId?: string, limit = 50, offset = 0) => request<UsersResponse>(`/users?appId=${appId}&limit=${limit}&offset=${offset}`),
+    get: (appId: string, externalId: string) => request<User>(`/users/${appId}/${externalId}`),
+    delete: (appId: string, externalId: string) => request<{ success: boolean }>(`/users/${appId}/${externalId}`, { method: 'DELETE' }),
+  },
+  analytics: {
+    overview: (appId: string) => request<AnalyticsOverview>(`/analytics/${appId}/overview`),
+    dau: (appId: string, days = 30) => request<{ history: { date: string; count: number }[] }>(`/analytics/${appId}/dau?days=${days}`),
+    retention: (appId: string) => request<{ day1: number; day7: number; day30: number }>(`/analytics/${appId}/retention`),
+    retentionCohort: (appId: string, weeks = 8) => request<{
+      cohorts: {
+        cohortDate: string;
+        cohortSize: number;
+        retention: (number | null)[];
+      }[];
+    }>(`/analytics/${appId}/retention-cohort?weeks=${weeks}`),
+  },
 };
-

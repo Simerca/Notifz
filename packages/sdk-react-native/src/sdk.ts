@@ -1,18 +1,28 @@
-import type { SDKConfig, UserContext, Notification, SyncResponse, Condition } from '@localnotification/shared';
+import type { SDKConfig, UserContext, Notification, SyncResponse, Condition, UserProperties } from '@localnotification/shared';
 import * as ExpoNotifications from 'expo-notifications';
-import { Platform } from 'react-native';
+import { Platform, AppState, type AppStateStatus } from 'react-native';
+
+interface SegmentInfo {
+  id: string;
+  name: string;
+  rules: Condition[];
+}
 
 export class LocalNotificationSDK {
   private config: SDKConfig;
   private userContext: UserContext = {};
   private cachedNotifications: Notification[] = [];
+  private cachedSegments: SegmentInfo[] = [];
   private scheduledIds: Map<string, string> = new Map();
   private syncInterval: ReturnType<typeof setInterval> | null = null;
   private lastVersion = 0;
+  private currentSessionId: string | null = null;
+  private appStateSubscription: { remove: () => void } | null = null;
 
   constructor(config: SDKConfig) {
     this.config = {
       syncInterval: 60000,
+      trackSessions: true,
       ...config,
     };
   }
@@ -22,6 +32,10 @@ export class LocalNotificationSDK {
     await this.configureNotifications();
     await this.sync();
     this.startAutoSync();
+
+    if (this.config.trackSessions) {
+      this.startSessionTracking();
+    }
   }
 
   private async requestPermissions(): Promise<boolean> {
@@ -55,46 +69,126 @@ export class LocalNotificationSDK {
     }
   }
 
-  setUserContext(context: UserContext): void {
-    this.userContext = { ...this.userContext, ...context };
-    this.scheduleEligibleNotifications();
+  private startSessionTracking(): void {
+    this.appStateSubscription = AppState.addEventListener('change', this.handleAppStateChange.bind(this));
+    this.startSession();
   }
 
-  async sync(): Promise<SyncResponse> {
-    const url = `${this.config.apiUrl}/api/sync/${this.config.appId}`;
-    const headers: HeadersInit = { 'Content-Type': 'application/json' };
+  private handleAppStateChange(nextState: AppStateStatus): void {
+    if (nextState === 'active') {
+      this.startSession();
+    } else if (nextState === 'background' || nextState === 'inactive') {
+      this.endSession();
+    }
+  }
 
+  private async startSession(): Promise<void> {
+    if (!this.userContext.userId || this.currentSessionId) return;
+
+    try {
+      const response = await this.sendRequest(`/api/analytics/${this.config.appId}/session`, {
+        method: 'POST',
+        body: JSON.stringify({
+          userId: this.userContext.userId,
+          type: 'start',
+          timestamp: new Date().toISOString(),
+        }),
+      });
+
+      if (response.sessionId) {
+        this.currentSessionId = response.sessionId;
+      }
+    } catch (error) {
+      console.error('Failed to start session:', error);
+    }
+  }
+
+  private async endSession(): Promise<void> {
+    if (!this.userContext.userId || !this.currentSessionId) return;
+
+    try {
+      await this.sendRequest(`/api/analytics/${this.config.appId}/session`, {
+        method: 'POST',
+        body: JSON.stringify({
+          userId: this.userContext.userId,
+          type: 'end',
+          sessionId: this.currentSessionId,
+          timestamp: new Date().toISOString(),
+        }),
+      });
+
+      this.currentSessionId = null;
+    } catch (error) {
+      console.error('Failed to end session:', error);
+    }
+  }
+
+  private async sendRequest<T>(path: string, options?: RequestInit): Promise<T> {
+    const headers: HeadersInit = { 'Content-Type': 'application/json' };
     if (this.config.apiKey) {
       headers['X-API-Key'] = this.config.apiKey;
     }
 
-    const response = await fetch(url, { headers });
+    const response = await fetch(`${this.config.apiUrl}${path}`, {
+      headers,
+      ...options,
+    });
+
     if (!response.ok) {
-      throw new Error(`Sync failed: ${response.statusText}`);
+      throw new Error(`Request failed: ${response.statusText}`);
     }
 
-    const data: SyncResponse = await response.json();
-    this.cachedNotifications = data.notifications;
-    this.lastVersion = data.version;
+    return response.json();
+  }
+
+  async setUserContext(context: UserContext): Promise<void> {
+    this.userContext = { ...this.userContext, ...context };
+
+    if (context.userId && context.properties) {
+      await this.syncUserProperties(context.userId, context.properties as UserProperties);
+    }
+
     await this.scheduleEligibleNotifications();
 
+    if (this.config.trackSessions && context.userId && !this.currentSessionId) {
+      this.startSession();
+    }
+  }
+
+  async updateUserProperties(properties: UserProperties): Promise<void> {
+    this.userContext.properties = { ...this.userContext.properties, ...properties };
+
+    if (this.userContext.userId) {
+      await this.syncUserProperties(this.userContext.userId, this.userContext.properties as UserProperties);
+    }
+
+    await this.scheduleEligibleNotifications();
+  }
+
+  private async syncUserProperties(userId: string, properties: UserProperties): Promise<void> {
+    try {
+      await this.sendRequest(`/api/users/${this.config.appId}`, {
+        method: 'POST',
+        body: JSON.stringify({ externalId: userId, properties }),
+      });
+    } catch (error) {
+      console.error('Failed to sync user properties:', error);
+    }
+  }
+
+  async sync(): Promise<SyncResponse> {
+    const data = await this.sendRequest<SyncResponse>(`/api/sync/${this.config.appId}`);
+    this.cachedNotifications = data.notifications;
+    this.cachedSegments = data.segments;
+    this.lastVersion = data.version;
+    await this.scheduleEligibleNotifications();
     return data;
   }
 
   async syncDelta(): Promise<SyncResponse> {
-    const url = `${this.config.apiUrl}/api/sync/${this.config.appId}/delta?since=${this.lastVersion}`;
-    const headers: HeadersInit = { 'Content-Type': 'application/json' };
-
-    if (this.config.apiKey) {
-      headers['X-API-Key'] = this.config.apiKey;
-    }
-
-    const response = await fetch(url, { headers });
-    if (!response.ok) {
-      throw new Error(`Delta sync failed: ${response.statusText}`);
-    }
-
-    const data: SyncResponse = await response.json();
+    const data = await this.sendRequest<SyncResponse>(
+      `/api/sync/${this.config.appId}/delta?since=${this.lastVersion}`
+    );
 
     for (const notification of data.notifications) {
       const index = this.cachedNotifications.findIndex((n) => n.id === notification.id);
@@ -105,6 +199,7 @@ export class LocalNotificationSDK {
       }
     }
 
+    this.cachedSegments = data.segments;
     this.lastVersion = data.version;
     await this.scheduleEligibleNotifications();
 
@@ -158,6 +253,12 @@ export class LocalNotificationSDK {
     });
   }
 
+  private userMatchesSegment(segmentId: string): boolean {
+    const segment = this.cachedSegments.find((s) => s.id === segmentId);
+    if (!segment) return false;
+    return this.evaluateConditions(segment.rules);
+  }
+
   private interpolateText(text: string): string {
     return text.replace(/\{\{(\w+)\}\}/g, (_, key) => {
       if (key === 'userId') return this.userContext.userId || '';
@@ -171,7 +272,14 @@ export class LocalNotificationSDK {
 
     for (const notification of this.cachedNotifications) {
       if (!notification.enabled) continue;
-      if (notification.conditions && !this.evaluateConditions(notification.conditions)) continue;
+
+      if (notification.segmentId && !this.userMatchesSegment(notification.segmentId)) {
+        continue;
+      }
+
+      if (notification.conditions && !this.evaluateConditions(notification.conditions)) {
+        continue;
+      }
 
       await this.scheduleNotification(notification);
     }
@@ -275,18 +383,31 @@ export class LocalNotificationSDK {
     return [...this.cachedNotifications];
   }
 
+  getSegments(): SegmentInfo[] {
+    return [...this.cachedSegments];
+  }
+
   getScheduledIds(): Map<string, string> {
     return new Map(this.scheduledIds);
   }
 
+  getUserContext(): UserContext {
+    return { ...this.userContext };
+  }
+
   async destroy(): Promise<void> {
     this.stopAutoSync();
+    await this.endSession();
+    if (this.appStateSubscription) {
+      this.appStateSubscription.remove();
+      this.appStateSubscription = null;
+    }
     await this.cancelAllScheduled();
     this.cachedNotifications = [];
+    this.cachedSegments = [];
   }
 }
 
 export function createLocalNotificationSDK(config: SDKConfig): LocalNotificationSDK {
   return new LocalNotificationSDK(config);
 }
-

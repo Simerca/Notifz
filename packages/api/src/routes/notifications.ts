@@ -14,6 +14,7 @@ function serializeNotification(n: {
   data: string | null;
   trigger: string;
   conditions: string | null;
+  segmentId: string | null;
   enabled: boolean;
   priority: string;
   badge: number | null;
@@ -31,6 +32,7 @@ function serializeNotification(n: {
     data: n.data ? JSON.parse(n.data) : undefined,
     trigger: JSON.parse(n.trigger),
     conditions: n.conditions ? JSON.parse(n.conditions) : undefined,
+    segmentId: n.segmentId ?? undefined,
     enabled: n.enabled,
     priority: n.priority as 'low' | 'default' | 'high',
     badge: n.badge ?? undefined,
@@ -71,6 +73,13 @@ notificationsRouter.post('/', async (c) => {
     return c.json({ error: 'App not found' }, 404);
   }
 
+  if (parsed.data.segmentId) {
+    const segment = await prisma.segment.findUnique({ where: { id: parsed.data.segmentId } });
+    if (!segment) {
+      return c.json({ error: 'Segment not found' }, 404);
+    }
+  }
+
   const notification = await prisma.notification.create({
     data: {
       id: nanoid(),
@@ -81,6 +90,7 @@ notificationsRouter.post('/', async (c) => {
       data: parsed.data.data ? JSON.stringify(parsed.data.data) : null,
       trigger: JSON.stringify(parsed.data.trigger),
       conditions: parsed.data.conditions ? JSON.stringify(parsed.data.conditions) : null,
+      segmentId: parsed.data.segmentId,
       enabled: parsed.data.enabled,
       priority: parsed.data.priority,
       badge: parsed.data.badge,
@@ -104,6 +114,13 @@ notificationsRouter.patch('/:id', async (c) => {
     return c.json({ error: 'Notification not found' }, 404);
   }
 
+  if (parsed.data.segmentId) {
+    const segment = await prisma.segment.findUnique({ where: { id: parsed.data.segmentId } });
+    if (!segment) {
+      return c.json({ error: 'Segment not found' }, 404);
+    }
+  }
+
   const notification = await prisma.notification.update({
     where: { id },
     data: {
@@ -113,6 +130,7 @@ notificationsRouter.patch('/:id', async (c) => {
       data: parsed.data.data !== undefined ? JSON.stringify(parsed.data.data) : undefined,
       trigger: parsed.data.trigger ? JSON.stringify(parsed.data.trigger) : undefined,
       conditions: parsed.data.conditions !== undefined ? JSON.stringify(parsed.data.conditions) : undefined,
+      segmentId: parsed.data.segmentId,
       enabled: parsed.data.enabled,
       priority: parsed.data.priority,
       badge: parsed.data.badge,
@@ -165,6 +183,7 @@ notificationsRouter.post('/:id/duplicate', async (c) => {
       data: notification.data,
       trigger: notification.trigger,
       conditions: notification.conditions,
+      segmentId: notification.segmentId,
       enabled: false,
       priority: notification.priority,
       badge: notification.badge,
@@ -174,4 +193,3 @@ notificationsRouter.post('/:id/duplicate', async (c) => {
 
   return c.json(serializeNotification(duplicate), 201);
 });
-

@@ -1,11 +1,10 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useParams, Link } from 'wouter';
-import { Plus, MoreVertical, Copy, Trash2, ChevronLeft, Calendar, Clock, Repeat, Zap } from 'lucide-react';
+import { useParams } from 'wouter';
+import { Plus, MoreHorizontal, Copy, Trash2, Calendar, Clock, Repeat, Zap } from 'lucide-react';
 import type { Notification, Trigger } from '@localnotification/shared';
-import { api, type App } from '@/lib/api';
+import { api } from '@/lib/api';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -105,7 +104,8 @@ export default function NotificationsPage() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Parameters<typeof api.notifications.update>[1] }) => api.notifications.update(id, data),
+    mutationFn: ({ id, data }: { id: string; data: Parameters<typeof api.notifications.update>[1] }) => 
+      api.notifications.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['notifications', params.appId] });
       handleCloseDialog();
@@ -229,118 +229,237 @@ export default function NotificationsPage() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-[60vh]">
-        <div className="animate-pulse text-muted-foreground">Loading...</div>
+        <div className="text-muted-foreground text-sm">Loading...</div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <Link href="/">
-          <Button variant="ghost" size="icon">
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-        </Link>
-        <div className="flex-1">
-          <h1 className="text-3xl font-bold tracking-tight">{app?.name || 'App'}</h1>
-          <p className="text-muted-foreground">Manage notifications for this app</p>
+    <div className="space-y-6 sm:space-y-8 animate-fade-in">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-semibold tracking-tight">{app?.name || 'Application'}</h1>
+          <p className="text-muted-foreground text-sm mt-1">
+            Configure notifications for this application
+          </p>
         </div>
-        <Button onClick={handleOpenCreate}>
-          <Plus className="mr-2 h-4 w-4" />
-          Create Notification
+        <Button size="sm" onClick={handleOpenCreate} className="w-full sm:w-auto">
+          <Plus className="mr-1.5 h-4 w-4" />
+          New notification
         </Button>
       </div>
 
       {notifications.length === 0 ? (
-        <Card className="border-dashed">
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <p className="text-muted-foreground mb-4">No notifications yet</p>
-            <Button onClick={handleOpenCreate}>
-              <Plus className="mr-2 h-4 w-4" />
+        <div className="border border-dashed rounded-xl p-8 sm:p-12 text-center">
+          <div className="max-w-sm mx-auto">
+            <p className="text-muted-foreground text-sm mb-4">No notifications yet</p>
+            <Button size="sm" onClick={handleOpenCreate}>
+              <Plus className="mr-1.5 h-4 w-4" />
               Create your first notification
             </Button>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="space-y-3">
-          {notifications.map((notification) => {
-            const TriggerIcon = getTriggerIcon(notification.trigger.type);
-            return (
-              <Card key={notification.id} className="hover:bg-card/80 transition-colors">
-                <CardHeader className="pb-3">
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-start gap-3">
-                      <Switch checked={notification.enabled} onCheckedChange={() => toggleMutation.mutate(notification.id)} />
-                      <div>
-                        <CardTitle className="text-base cursor-pointer hover:underline" onClick={() => handleOpenEdit(notification)}>
-                          {notification.name}
-                        </CardTitle>
-                        <CardDescription className="mt-1">{notification.title}</CardDescription>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Badge variant={notification.enabled ? 'default' : 'secondary'} className="text-xs">
-                        <TriggerIcon className="mr-1 h-3 w-3" />
-                        {formatTrigger(notification.trigger)}
-                      </Badge>
-                      <Badge variant="outline" className="text-xs capitalize">
-                        {notification.priority}
-                      </Badge>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8">
-                            <MoreVertical className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => handleOpenEdit(notification)}>Edit</DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => duplicateMutation.mutate(notification.id)}>
-                            <Copy className="mr-2 h-4 w-4" />
-                            Duplicate
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem className="text-destructive" onClick={() => setDeleteNotification(notification)}>
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground line-clamp-2">{notification.body}</p>
-                </CardContent>
-              </Card>
-            );
-          })}
+          </div>
         </div>
+      ) : (
+        <>
+          <div className="hidden md:block border rounded-xl overflow-hidden">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b bg-muted/30">
+                  <th className="w-12 px-5 py-3"></th>
+                  <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wider px-5 py-3">
+                    Notification
+                  </th>
+                  <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wider px-5 py-3">
+                    Trigger
+                  </th>
+                  <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wider px-5 py-3">
+                    Priority
+                  </th>
+                  <th className="text-right text-xs font-medium text-muted-foreground uppercase tracking-wider px-5 py-3">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y">
+                {notifications.map((notification) => {
+                  const TriggerIcon = getTriggerIcon(notification.trigger.type);
+                  return (
+                    <tr key={notification.id} className="group hover:bg-muted/20 transition-colors">
+                      <td className="px-5 py-4">
+                        <Switch 
+                          checked={notification.enabled} 
+                          onCheckedChange={() => toggleMutation.mutate(notification.id)} 
+                        />
+                      </td>
+                      <td className="px-5 py-4">
+                        <button 
+                          onClick={() => handleOpenEdit(notification)}
+                          className="text-left"
+                        >
+                          <div className="font-medium text-sm">{notification.name}</div>
+                          <div className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
+                            {notification.title}
+                          </div>
+                        </button>
+                      </td>
+                      <td className="px-5 py-4">
+                        <Badge variant="secondary" className="font-normal gap-1.5">
+                          <TriggerIcon className="h-3 w-3" />
+                          {formatTrigger(notification.trigger)}
+                        </Badge>
+                      </td>
+                      <td className="px-5 py-4">
+                        <Badge 
+                          variant="outline" 
+                          className="font-normal capitalize"
+                        >
+                          {notification.priority}
+                        </Badge>
+                      </td>
+                      <td className="px-5 py-4 text-right">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => handleOpenEdit(notification)}>
+                              Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => duplicateMutation.mutate(notification.id)}>
+                              <Copy className="mr-2 h-4 w-4" />
+                              Duplicate
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem 
+                              className="text-destructive focus:text-destructive" 
+                              onClick={() => setDeleteNotification(notification)}
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="md:hidden space-y-3">
+            {notifications.map((notification) => {
+              const TriggerIcon = getTriggerIcon(notification.trigger.type);
+              return (
+                <div key={notification.id} className="border rounded-xl p-4 space-y-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-start gap-3 flex-1 min-w-0">
+                      <Switch 
+                        checked={notification.enabled} 
+                        onCheckedChange={() => toggleMutation.mutate(notification.id)} 
+                        className="mt-0.5"
+                      />
+                      <button 
+                        onClick={() => handleOpenEdit(notification)}
+                        className="text-left flex-1 min-w-0"
+                      >
+                        <div className="font-medium text-sm truncate">{notification.name}</div>
+                        <div className="text-xs text-muted-foreground mt-0.5 truncate">
+                          {notification.title}
+                        </div>
+                      </button>
+                    </div>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 -mr-2 flex-shrink-0">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => handleOpenEdit(notification)}>
+                          Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => duplicateMutation.mutate(notification.id)}>
+                          <Copy className="mr-2 h-4 w-4" />
+                          Duplicate
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem 
+                          className="text-destructive focus:text-destructive" 
+                          onClick={() => setDeleteNotification(notification)}
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Badge variant="secondary" className="font-normal gap-1.5">
+                      <TriggerIcon className="h-3 w-3" />
+                      {formatTrigger(notification.trigger)}
+                    </Badge>
+                    <Badge variant="outline" className="font-normal capitalize">
+                      {notification.priority}
+                    </Badge>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </>
       )}
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
           <form onSubmit={handleSubmit}>
             <DialogHeader>
-              <DialogTitle>{editingNotification ? 'Edit Notification' : 'Create Notification'}</DialogTitle>
-              <DialogDescription>Configure the notification settings</DialogDescription>
+              <DialogTitle>
+                {editingNotification ? 'Edit notification' : 'Create notification'}
+              </DialogTitle>
+              <DialogDescription>
+                Configure the notification settings
+              </DialogDescription>
             </DialogHeader>
-            <div className="grid gap-4 py-4 max-h-[60vh] overflow-y-auto pr-2">
-              <div className="grid gap-2">
-                <Label htmlFor="name">Name</Label>
-                <Input id="name" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} placeholder="Welcome notification" required />
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="name" className="text-sm font-medium">Name</Label>
+                <Input 
+                  id="name" 
+                  value={formData.name} 
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })} 
+                  placeholder="Welcome notification" 
+                  required 
+                />
               </div>
-              <div className="grid gap-2">
-                <Label htmlFor="title">Title</Label>
-                <Input id="title" value={formData.title} onChange={(e) => setFormData({ ...formData, title: e.target.value })} placeholder="Welcome!" required />
+              <div className="space-y-2">
+                <Label htmlFor="title" className="text-sm font-medium">Title</Label>
+                <Input 
+                  id="title" 
+                  value={formData.title} 
+                  onChange={(e) => setFormData({ ...formData, title: e.target.value })} 
+                  placeholder="Welcome!" 
+                  required 
+                />
               </div>
-              <div className="grid gap-2">
-                <Label htmlFor="body">Body</Label>
-                <Textarea id="body" value={formData.body} onChange={(e) => setFormData({ ...formData, body: e.target.value })} placeholder="Thanks for joining us..." required />
+              <div className="space-y-2">
+                <Label htmlFor="body" className="text-sm font-medium">Body</Label>
+                <Textarea 
+                  id="body" 
+                  value={formData.body} 
+                  onChange={(e) => setFormData({ ...formData, body: e.target.value })} 
+                  placeholder="Thanks for joining us..." 
+                  required 
+                />
               </div>
-              <div className="grid gap-2">
-                <Label htmlFor="triggerType">Trigger Type</Label>
-                <Select value={formData.triggerType} onValueChange={(v: NotificationFormData['triggerType']) => setFormData({ ...formData, triggerType: v })}>
+              <div className="space-y-2">
+                <Label htmlFor="triggerType" className="text-sm font-medium">Trigger Type</Label>
+                <Select 
+                  value={formData.triggerType} 
+                  onValueChange={(v: NotificationFormData['triggerType']) => setFormData({ ...formData, triggerType: v })}
+                >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -352,18 +471,24 @@ export default function NotificationsPage() {
                 </Select>
               </div>
               {formData.triggerType === 'scheduled' && (
-                <div className="grid gap-2">
-                  <Label htmlFor="scheduledAt">Schedule Date & Time</Label>
-                  <Input id="scheduledAt" type="datetime-local" value={formData.scheduledAt} onChange={(e) => setFormData({ ...formData, scheduledAt: e.target.value })} />
+                <div className="space-y-2">
+                  <Label htmlFor="scheduledAt" className="text-sm font-medium">Schedule Date & Time</Label>
+                  <Input 
+                    id="scheduledAt" 
+                    type="datetime-local" 
+                    value={formData.scheduledAt} 
+                    onChange={(e) => setFormData({ ...formData, scheduledAt: e.target.value })} 
+                  />
                 </div>
               )}
               {formData.triggerType === 'recurring' && (
                 <>
-                  <div className="grid gap-2">
-                    <Label htmlFor="recurrenceInterval">Recurrence</Label>
+                  <div className="space-y-2">
+                    <Label htmlFor="recurrenceInterval" className="text-sm font-medium">Recurrence</Label>
                     <Select
                       value={formData.recurrenceInterval}
-                      onValueChange={(v: NotificationFormData['recurrenceInterval']) => setFormData({ ...formData, recurrenceInterval: v })}
+                      onValueChange={(v: NotificationFormData['recurrenceInterval']) => 
+                        setFormData({ ...formData, recurrenceInterval: v })}
                     >
                       <SelectTrigger>
                         <SelectValue />
@@ -375,15 +500,23 @@ export default function NotificationsPage() {
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="recurrenceTime">Time</Label>
-                    <Input id="recurrenceTime" type="time" value={formData.recurrenceTime} onChange={(e) => setFormData({ ...formData, recurrenceTime: e.target.value })} />
+                  <div className="space-y-2">
+                    <Label htmlFor="recurrenceTime" className="text-sm font-medium">Time</Label>
+                    <Input 
+                      id="recurrenceTime" 
+                      type="time" 
+                      value={formData.recurrenceTime} 
+                      onChange={(e) => setFormData({ ...formData, recurrenceTime: e.target.value })} 
+                    />
                   </div>
                 </>
               )}
-              <div className="grid gap-2">
-                <Label htmlFor="priority">Priority</Label>
-                <Select value={formData.priority} onValueChange={(v: NotificationFormData['priority']) => setFormData({ ...formData, priority: v })}>
+              <div className="space-y-2">
+                <Label htmlFor="priority" className="text-sm font-medium">Priority</Label>
+                <Select 
+                  value={formData.priority} 
+                  onValueChange={(v: NotificationFormData['priority']) => setFormData({ ...formData, priority: v })}
+                >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -394,17 +527,23 @@ export default function NotificationsPage() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="flex items-center justify-between">
-                <Label htmlFor="enabled">Enabled</Label>
-                <Switch id="enabled" checked={formData.enabled} onCheckedChange={(checked) => setFormData({ ...formData, enabled: checked })} />
+              <div className="flex items-center justify-between py-2">
+                <Label htmlFor="enabled" className="text-sm font-medium">Enabled</Label>
+                <Switch 
+                  id="enabled" 
+                  checked={formData.enabled} 
+                  onCheckedChange={(checked) => setFormData({ ...formData, enabled: checked })} 
+                />
               </div>
             </div>
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={handleCloseDialog}>
+            <DialogFooter className="flex-col sm:flex-row gap-2">
+              <Button type="button" variant="outline" onClick={handleCloseDialog} className="w-full sm:w-auto">
                 Cancel
               </Button>
-              <Button type="submit" disabled={createMutation.isPending || updateMutation.isPending}>
-                {createMutation.isPending || updateMutation.isPending ? 'Saving...' : editingNotification ? 'Update' : 'Create'}
+              <Button type="submit" disabled={createMutation.isPending || updateMutation.isPending} className="w-full sm:w-auto">
+                {createMutation.isPending || updateMutation.isPending 
+                  ? 'Saving...' 
+                  : editingNotification ? 'Update' : 'Create'}
               </Button>
             </DialogFooter>
           </form>
@@ -414,14 +553,16 @@ export default function NotificationsPage() {
       <AlertDialog open={!!deleteNotification} onOpenChange={(open) => !open && setDeleteNotification(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Notification</AlertDialogTitle>
-            <AlertDialogDescription>Are you sure you want to delete "{deleteNotification?.name}"? This action cannot be undone.</AlertDialogDescription>
+            <AlertDialogTitle>Delete notification</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete "{deleteNotification?.name}"? This action cannot be undone.
+            </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+            <AlertDialogCancel className="w-full sm:w-auto">Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => deleteNotification && deleteMutation.mutate(deleteNotification.id)}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90 w-full sm:w-auto"
             >
               Delete
             </AlertDialogAction>
@@ -431,4 +572,3 @@ export default function NotificationsPage() {
     </div>
   );
 }
-

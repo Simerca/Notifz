@@ -1,20 +1,29 @@
 import { useEffect, useState, useCallback } from 'react';
-import type { SDKConfig, UserContext, Notification } from '@localnotification/shared';
+import type { SDKConfig, UserContext, Notification, UserProperties } from '@localnotification/shared';
 import { LocalNotificationSDK } from './sdk';
+
+interface SegmentInfo {
+  id: string;
+  name: string;
+  rules: { field: string; operator: string; value: unknown }[];
+}
 
 interface UseLocalNotificationsResult {
   notifications: Notification[];
+  segments: SegmentInfo[];
   isInitialized: boolean;
   isLoading: boolean;
   error: Error | null;
   sync: () => Promise<void>;
-  setUserContext: (context: UserContext) => void;
+  setUserContext: (context: UserContext) => Promise<void>;
+  updateUserProperties: (properties: UserProperties) => Promise<void>;
   triggerNotification: (id: string) => Promise<void>;
 }
 
 export function useLocalNotifications(config: SDKConfig): UseLocalNotificationsResult {
   const [sdk] = useState(() => new LocalNotificationSDK(config));
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [segments, setSegments] = useState<SegmentInfo[]>([]);
   const [isInitialized, setIsInitialized] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
@@ -24,6 +33,7 @@ export function useLocalNotifications(config: SDKConfig): UseLocalNotificationsR
       .initialize()
       .then(() => {
         setNotifications(sdk.getNotifications());
+        setSegments(sdk.getSegments());
         setIsInitialized(true);
         setError(null);
       })
@@ -44,6 +54,7 @@ export function useLocalNotifications(config: SDKConfig): UseLocalNotificationsR
     try {
       await sdk.sync();
       setNotifications(sdk.getNotifications());
+      setSegments(sdk.getSegments());
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err : new Error(String(err)));
@@ -53,8 +64,16 @@ export function useLocalNotifications(config: SDKConfig): UseLocalNotificationsR
   }, [sdk]);
 
   const setUserContext = useCallback(
-    (context: UserContext) => {
-      sdk.setUserContext(context);
+    async (context: UserContext) => {
+      await sdk.setUserContext(context);
+      setNotifications(sdk.getNotifications());
+    },
+    [sdk]
+  );
+
+  const updateUserProperties = useCallback(
+    async (properties: UserProperties) => {
+      await sdk.updateUserProperties(properties);
       setNotifications(sdk.getNotifications());
     },
     [sdk]
@@ -69,12 +88,13 @@ export function useLocalNotifications(config: SDKConfig): UseLocalNotificationsR
 
   return {
     notifications,
+    segments,
     isInitialized,
     isLoading,
     error,
     sync,
     setUserContext,
+    updateUserProperties,
     triggerNotification,
   };
 }
-

@@ -28,6 +28,7 @@ export const NotificationSchema = z.object({
   data: z.record(z.unknown()).optional(),
   trigger: TriggerSchema,
   conditions: z.array(ConditionSchema).optional(),
+  segmentId: z.string().optional(),
   enabled: z.boolean(),
   priority: z.enum(['low', 'default', 'high']).default('default'),
   badge: z.number().optional(),
@@ -54,6 +55,11 @@ export const UpdateNotificationSchema = NotificationSchema.partial().omit({
 
 export const SyncResponseSchema = z.object({
   notifications: z.array(NotificationSchema),
+  segments: z.array(z.object({
+    id: z.string(),
+    name: z.string(),
+    rules: z.array(ConditionSchema),
+  })),
   serverTime: z.string().datetime(),
   version: z.number(),
 });
@@ -66,3 +72,69 @@ export const AppSchema = z.object({
   updatedAt: z.string().datetime(),
 });
 
+export const SegmentRuleSchema = ConditionSchema;
+
+export const SegmentSchema = z.object({
+  id: z.string(),
+  appId: z.string(),
+  name: z.string(),
+  description: z.string().optional(),
+  rules: z.array(SegmentRuleSchema),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+});
+
+export const CreateSegmentSchema = SegmentSchema.omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const UpdateSegmentSchema = SegmentSchema.partial().omit({
+  id: true,
+  appId: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const UserPropertiesSchema = z.record(z.union([z.string(), z.number(), z.boolean()]));
+
+export const UserSchema = z.object({
+  id: z.string(),
+  appId: z.string(),
+  externalId: z.string(),
+  properties: UserPropertiesSchema,
+  firstSeen: z.string().datetime(),
+  lastSeen: z.string().datetime(),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+});
+
+export const UpsertUserSchema = z.object({
+  externalId: z.string(),
+  properties: UserPropertiesSchema,
+});
+
+export const SessionEventSchema = z.object({
+  type: z.enum(['start', 'end']),
+  sessionId: z.string().optional(),
+  timestamp: z.string().datetime().optional(),
+});
+
+export const AnalyticsOverviewSchema = z.object({
+  totalUsers: z.number(),
+  activeUsers: z.object({
+    daily: z.number(),
+    weekly: z.number(),
+    monthly: z.number(),
+  }),
+  retention: z.object({
+    day1: z.number(),
+    day7: z.number(),
+    day30: z.number(),
+  }),
+  dauHistory: z.array(z.object({
+    date: z.string(),
+    count: z.number(),
+  })),
+});

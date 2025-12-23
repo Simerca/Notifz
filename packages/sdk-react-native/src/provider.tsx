@@ -1,15 +1,23 @@
 import React, { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react';
-import type { SDKConfig, UserContext, Notification } from '@localnotification/shared';
+import type { SDKConfig, UserContext, Notification, UserProperties } from '@localnotification/shared';
 import { LocalNotificationSDK } from './sdk';
+
+interface SegmentInfo {
+  id: string;
+  name: string;
+  rules: { field: string; operator: string; value: unknown }[];
+}
 
 interface LocalNotificationContextValue {
   sdk: LocalNotificationSDK | null;
   notifications: Notification[];
+  segments: SegmentInfo[];
   isInitialized: boolean;
   isLoading: boolean;
   error: Error | null;
   sync: () => Promise<void>;
-  setUserContext: (context: UserContext) => void;
+  setUserContext: (context: UserContext) => Promise<void>;
+  updateUserProperties: (properties: UserProperties) => Promise<void>;
   triggerNotification: (id: string) => Promise<void>;
 }
 
@@ -24,6 +32,7 @@ interface ProviderProps {
 export function LocalNotificationProvider({ config, children, autoInitialize = true }: ProviderProps) {
   const [sdk] = useState(() => new LocalNotificationSDK(config));
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [segments, setSegments] = useState<SegmentInfo[]>([]);
   const [isInitialized, setIsInitialized] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
@@ -36,6 +45,7 @@ export function LocalNotificationProvider({ config, children, autoInitialize = t
       .initialize()
       .then(() => {
         setNotifications(sdk.getNotifications());
+        setSegments(sdk.getSegments());
         setIsInitialized(true);
         setError(null);
       })
@@ -56,6 +66,7 @@ export function LocalNotificationProvider({ config, children, autoInitialize = t
     try {
       await sdk.sync();
       setNotifications(sdk.getNotifications());
+      setSegments(sdk.getSegments());
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err : new Error(String(err)));
@@ -65,8 +76,16 @@ export function LocalNotificationProvider({ config, children, autoInitialize = t
   }, [sdk]);
 
   const setUserContext = useCallback(
-    (context: UserContext) => {
-      sdk.setUserContext(context);
+    async (context: UserContext) => {
+      await sdk.setUserContext(context);
+      setNotifications(sdk.getNotifications());
+    },
+    [sdk]
+  );
+
+  const updateUserProperties = useCallback(
+    async (properties: UserProperties) => {
+      await sdk.updateUserProperties(properties);
       setNotifications(sdk.getNotifications());
     },
     [sdk]
@@ -83,14 +102,16 @@ export function LocalNotificationProvider({ config, children, autoInitialize = t
     () => ({
       sdk,
       notifications,
+      segments,
       isInitialized,
       isLoading,
       error,
       sync,
       setUserContext,
+      updateUserProperties,
       triggerNotification,
     }),
-    [sdk, notifications, isInitialized, isLoading, error, sync, setUserContext, triggerNotification]
+    [sdk, notifications, segments, isInitialized, isLoading, error, sync, setUserContext, updateUserProperties, triggerNotification]
   );
 
   return <LocalNotificationContext.Provider value={value}>{children}</LocalNotificationContext.Provider>;
@@ -103,4 +124,3 @@ export function useLocalNotificationContext(): LocalNotificationContextValue {
   }
   return context;
 }
-
