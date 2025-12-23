@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { nanoid } from 'nanoid';
 import { prisma } from '../db';
-import type { AnalyticsOverview } from '@localnotification/shared';
+import type { AnalyticsOverview, Condition } from '@localnotification/shared';
 
 export const analyticsRouter = new Hono();
 
@@ -16,9 +16,30 @@ function getDaysAgo(days: number): Date {
   return date;
 }
 
-function getDateFromString(dateStr: string): Date {
-  const [year, month, day] = dateStr.split('-').map(Number);
-  return new Date(year, month - 1, day);
+function evaluateCondition(condition: Condition, properties: Record<string, unknown>): boolean {
+  const value = properties[condition.field];
+  if (value === undefined) return false;
+
+  switch (condition.operator) {
+    case 'eq':
+      return value === condition.value;
+    case 'neq':
+      return value !== condition.value;
+    case 'gt':
+      return typeof value === 'number' && typeof condition.value === 'number' && value > condition.value;
+    case 'gte':
+      return typeof value === 'number' && typeof condition.value === 'number' && value >= condition.value;
+    case 'lt':
+      return typeof value === 'number' && typeof condition.value === 'number' && value < condition.value;
+    case 'lte':
+      return typeof value === 'number' && typeof condition.value === 'number' && value <= condition.value;
+    case 'contains':
+      return typeof value === 'string' && typeof condition.value === 'string' && value.includes(condition.value);
+    case 'in':
+      return Array.isArray(condition.value) && condition.value.includes(value as string);
+    default:
+      return false;
+  }
 }
 
 analyticsRouter.get('/:appId/overview', async (c) => {
@@ -67,14 +88,17 @@ analyticsRouter.get('/:appId/overview', async (c) => {
   return c.json(response);
 });
 
-async function calculateSimpleRetention(appId: string) {
+async function calculateSimpleRetention(appId: string, userIds?: string[]) {
   const day1 = getDaysAgo(1);
   const day7 = getDaysAgo(7);
   const day30 = getDaysAgo(30);
 
+  const userFilter = userIds ? { id: { in: userIds } } : {};
+
   const usersFirstSeenDay1 = await prisma.user.count({
     where: {
       appId,
+      ...userFilter,
       firstSeen: { gte: day1, lt: getDaysAgo(0) },
     },
   });
@@ -82,6 +106,7 @@ async function calculateSimpleRetention(appId: string) {
   const usersFirstSeenDay7 = await prisma.user.count({
     where: {
       appId,
+      ...userFilter,
       firstSeen: { gte: day7, lt: getDaysAgo(6) },
     },
   });
@@ -89,6 +114,7 @@ async function calculateSimpleRetention(appId: string) {
   const usersFirstSeenDay30 = await prisma.user.count({
     where: {
       appId,
+      ...userFilter,
       firstSeen: { gte: day30, lt: getDaysAgo(29) },
     },
   });
@@ -98,6 +124,7 @@ async function calculateSimpleRetention(appId: string) {
     where: {
       appId,
       date: getDateString(new Date()),
+      ...(userIds ? { userId: { in: userIds } } : {}),
       user: {
         firstSeen: { gte: day1, lt: getDaysAgo(0) },
       },
@@ -109,6 +136,7 @@ async function calculateSimpleRetention(appId: string) {
     where: {
       appId,
       date: { gte: getDateString(getDaysAgo(1)) },
+      ...(userIds ? { userId: { in: userIds } } : {}),
       user: {
         firstSeen: { gte: day7, lt: getDaysAgo(6) },
       },
@@ -120,6 +148,7 @@ async function calculateSimpleRetention(appId: string) {
     where: {
       appId,
       date: { gte: getDateString(getDaysAgo(7)) },
+      ...(userIds ? { userId: { in: userIds } } : {}),
       user: {
         firstSeen: { gte: day30, lt: getDaysAgo(29) },
       },
@@ -152,10 +181,34 @@ async function getDauHistory(appId: string, days: number) {
 analyticsRouter.get('/:appId/retention-cohort', async (c) => {
   const appId = c.req.param('appId');
   const weeks = Number(c.req.query('weeks') || 8);
+  const segmentId = c.req.query('segmentId');
 
   const app = await prisma.app.findUnique({ where: { id: appId } });
   if (!app) {
     return c.json({ error: 'App not found' }, 404);
+  }
+
+  let segmentUserIds: string[] | undefined;
+  
+  if (segmentId) {
+    const segment = await prisma.segment.findUnique({ where: { id: segmentId } });
+    if (!segment) {
+      return c.json({ error: 'Segment not found' }, 404);
+    }
+    
+    const rules: Condition[] = JSON.parse(segment.rules);
+    const allUsers = await prisma.user.findMany({
+      where: { appId },
+    });
+    
+    segmentUserIds = allUsers
+      .filter((user) => {
+        const properties = typeof user.properties === 'string' 
+          ? JSON.parse(user.properties) 
+          : user.properties;
+        return rules.every((rule) => evaluateCondition(rule, properties));
+      })
+      .map((u) => u.id);
   }
 
   const cohorts: {
@@ -164,16 +217,15 @@ analyticsRouter.get('/:appId/retention-cohort', async (c) => {
     retention: (number | null)[];
   }[] = [];
 
-  // Generate cohorts for each week
   for (let weekIndex = weeks - 1; weekIndex >= 0; weekIndex--) {
     const cohortStartDate = getDaysAgo(weekIndex * 7 + 6);
     const cohortEndDate = getDaysAgo(weekIndex * 7);
     const cohortDateStr = getDateString(cohortStartDate);
 
-    // Get users who first appeared in this cohort week
     const cohortUsers = await prisma.user.findMany({
       where: {
         appId,
+        ...(segmentUserIds ? { id: { in: segmentUserIds } } : {}),
         firstSeen: {
           gte: cohortStartDate,
           lt: new Date(cohortEndDate.getTime() + 24 * 60 * 60 * 1000),
@@ -185,12 +237,8 @@ analyticsRouter.get('/:appId/retention-cohort', async (c) => {
     const cohortSize = cohortUsers.length;
     const retention: (number | null)[] = [];
 
-    // Calculate retention for each subsequent week
-    const maxWeeksToTrack = Math.min(8, weekIndex + 1);
-    
     for (let retentionWeek = 0; retentionWeek < 8; retentionWeek++) {
       if (retentionWeek > weekIndex) {
-        // Future week, no data yet
         retention.push(null);
         continue;
       }
@@ -201,19 +249,16 @@ analyticsRouter.get('/:appId/retention-cohort', async (c) => {
       }
 
       if (retentionWeek === 0) {
-        // Week 0 is always 100%
         retention.push(100);
         continue;
       }
 
-      // Calculate the date range for this retention week
       const retentionWeekStart = new Date(cohortStartDate.getTime() + retentionWeek * 7 * 24 * 60 * 60 * 1000);
       const retentionWeekEnd = new Date(retentionWeekStart.getTime() + 7 * 24 * 60 * 60 * 1000);
       
       const retentionStartStr = getDateString(retentionWeekStart);
       const retentionEndStr = getDateString(retentionWeekEnd);
 
-      // Count users from this cohort who had sessions in the retention week
       const userIds = cohortUsers.map(u => u.id);
       
       const activeUsers = await prisma.session.groupBy({
@@ -241,6 +286,123 @@ analyticsRouter.get('/:appId/retention-cohort', async (c) => {
 
   return c.json({ cohorts });
 });
+
+// Compare retention across segments
+analyticsRouter.get('/:appId/retention-comparison', async (c) => {
+  const appId = c.req.param('appId');
+
+  const app = await prisma.app.findUnique({ where: { id: appId } });
+  if (!app) {
+    return c.json({ error: 'App not found' }, 404);
+  }
+
+  const segments = await prisma.segment.findMany({
+    where: { appId },
+    orderBy: { name: 'asc' },
+  });
+
+  const allUsers = await prisma.user.findMany({
+    where: { appId },
+  });
+
+  const comparisons: {
+    segmentId: string | null;
+    segmentName: string;
+    userCount: number;
+    retention: {
+      week1: number;
+      week2: number;
+      week4: number;
+      week8: number;
+    };
+  }[] = [];
+
+  // Calculate retention for all users first
+  const allUserIds = allUsers.map((u) => u.id);
+  const allUsersRetention = await calculateWeeklyRetention(appId, allUserIds);
+  
+  comparisons.push({
+    segmentId: null,
+    segmentName: 'All Users',
+    userCount: allUsers.length,
+    retention: allUsersRetention,
+  });
+
+  // Calculate retention for each segment
+  for (const segment of segments) {
+    const rules: Condition[] = JSON.parse(segment.rules);
+    
+    const segmentUsers = allUsers.filter((user) => {
+      const properties = typeof user.properties === 'string' 
+        ? JSON.parse(user.properties) 
+        : user.properties;
+      return rules.every((rule) => evaluateCondition(rule, properties));
+    });
+
+    const segmentUserIds = segmentUsers.map((u) => u.id);
+    const segmentRetention = await calculateWeeklyRetention(appId, segmentUserIds);
+
+    comparisons.push({
+      segmentId: segment.id,
+      segmentName: segment.name,
+      userCount: segmentUsers.length,
+      retention: segmentRetention,
+    });
+  }
+
+  return c.json({ comparisons });
+});
+
+async function calculateWeeklyRetention(appId: string, userIds: string[]) {
+  if (userIds.length === 0) {
+    return { week1: 0, week2: 0, week4: 0, week8: 0 };
+  }
+
+  const calculateRetentionForWeek = async (weeksAgo: number) => {
+    const cohortStart = getDaysAgo(weeksAgo * 7 + 6);
+    const cohortEnd = getDaysAgo(weeksAgo * 7);
+
+    const cohortUsers = await prisma.user.findMany({
+      where: {
+        appId,
+        id: { in: userIds },
+        firstSeen: {
+          gte: cohortStart,
+          lt: new Date(cohortEnd.getTime() + 24 * 60 * 60 * 1000),
+        },
+      },
+      select: { id: true },
+    });
+
+    if (cohortUsers.length === 0) return 0;
+
+    const retentionStart = getDaysAgo(6);
+    const retentionEnd = new Date();
+
+    const activeUsers = await prisma.session.groupBy({
+      by: ['userId'],
+      where: {
+        appId,
+        userId: { in: cohortUsers.map((u) => u.id) },
+        date: {
+          gte: getDateString(retentionStart),
+          lte: getDateString(retentionEnd),
+        },
+      },
+    });
+
+    return Math.round((activeUsers.length / cohortUsers.length) * 100);
+  };
+
+  const [week1, week2, week4, week8] = await Promise.all([
+    calculateRetentionForWeek(1),
+    calculateRetentionForWeek(2),
+    calculateRetentionForWeek(4),
+    calculateRetentionForWeek(8),
+  ]);
+
+  return { week1, week2, week4, week8 };
+}
 
 analyticsRouter.post('/:appId/session', async (c) => {
   const appId = c.req.param('appId');

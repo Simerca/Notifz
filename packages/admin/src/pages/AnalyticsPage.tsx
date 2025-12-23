@@ -1,12 +1,15 @@
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useParams } from 'wouter';
-import { Users, UserCheck, TrendingUp, BarChart3, Table } from 'lucide-react';
+import { Users, UserCheck, TrendingUp, BarChart3, Table, GitCompare } from 'lucide-react';
 import { api } from '@/lib/api';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 
 export default function AnalyticsPage() {
   const params = useParams<{ appId: string }>();
+  const [selectedSegment, setSelectedSegment] = useState<string>('all');
 
   const { data: overview, isLoading } = useQuery({
     queryKey: ['analytics', params.appId],
@@ -15,9 +18,26 @@ export default function AnalyticsPage() {
     refetchInterval: 30000,
   });
 
+  const { data: segments = [] } = useQuery({
+    queryKey: ['segments', params.appId],
+    queryFn: () => api.segments.list(params.appId),
+    enabled: !!params.appId,
+  });
+
   const { data: retentionData } = useQuery({
-    queryKey: ['retention-cohort', params.appId],
-    queryFn: () => api.analytics.retentionCohort(params.appId!, 8),
+    queryKey: ['retention-cohort', params.appId, selectedSegment],
+    queryFn: () => api.analytics.retentionCohort(
+      params.appId!, 
+      8, 
+      selectedSegment === 'all' ? undefined : selectedSegment
+    ),
+    enabled: !!params.appId,
+    refetchInterval: 60000,
+  });
+
+  const { data: comparisonData } = useQuery({
+    queryKey: ['retention-comparison', params.appId],
+    queryFn: () => api.analytics.retentionComparison(params.appId!),
     enabled: !!params.appId,
     refetchInterval: 60000,
   });
@@ -68,11 +88,45 @@ export default function AnalyticsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Table className="h-5 w-5" />
-            Retention Cohorts
-          </CardTitle>
-          <CardDescription>Weekly cohort retention analysis</CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <GitCompare className="h-5 w-5" />
+                Retention by Segment
+              </CardTitle>
+              <CardDescription>Compare retention rates across user segments</CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <RetentionComparisonTable comparisons={comparisonData?.comparisons ?? []} />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Table className="h-5 w-5" />
+                Retention Cohorts
+              </CardTitle>
+              <CardDescription>Weekly cohort retention analysis</CardDescription>
+            </div>
+            <Select value={selectedSegment} onValueChange={setSelectedSegment}>
+              <SelectTrigger className="w-[200px]">
+                <SelectValue placeholder="All users" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All users</SelectItem>
+                {segments.map((segment) => (
+                  <SelectItem key={segment.id} value={segment.id}>
+                    {segment.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </CardHeader>
         <CardContent>
           <RetentionTable cohorts={retentionData?.cohorts ?? []} />
@@ -221,7 +275,7 @@ function RetentionTable({ cohorts }: { cohorts: CohortData[] }) {
           </tr>
         </thead>
         <tbody>
-          {cohorts.map((cohort, index) => (
+          {cohorts.map((cohort) => (
             <tr key={cohort.cohortDate} className="border-b last:border-0">
               <td className="py-2 px-2 font-medium whitespace-nowrap">
                 {formatDate(cohort.cohortDate)}
@@ -268,6 +322,110 @@ function RetentionTable({ cohorts }: { cohorts: CohortData[] }) {
           <span>80-100%</span>
         </div>
       </div>
+    </div>
+  );
+}
+
+interface ComparisonData {
+  segmentId: string | null;
+  segmentName: string;
+  userCount: number;
+  retention: {
+    week1: number;
+    week2: number;
+    week4: number;
+    week8: number;
+  };
+}
+
+function RetentionComparisonTable({ comparisons }: { comparisons: ComparisonData[] }) {
+  if (comparisons.length === 0) {
+    return (
+      <div className="text-center py-8 text-muted-foreground">
+        <p>No comparison data available yet</p>
+        <p className="text-sm mt-1">Create segments to compare retention rates</p>
+      </div>
+    );
+  }
+
+  const getRetentionColor = (value: number): string => {
+    if (value >= 80) return 'text-emerald-400';
+    if (value >= 60) return 'text-emerald-500';
+    if (value >= 40) return 'text-yellow-500';
+    if (value >= 20) return 'text-orange-500';
+    return 'text-red-500';
+  };
+
+  const getBarWidth = (value: number): string => {
+    return `${Math.min(100, value)}%`;
+  };
+
+  const maxRetention = Math.max(
+    ...comparisons.flatMap((c) => [c.retention.week1, c.retention.week2, c.retention.week4, c.retention.week8])
+  ) || 100;
+
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="border-b">
+            <th className="text-left py-3 px-2 font-medium text-muted-foreground">Segment</th>
+            <th className="text-center py-3 px-2 font-medium text-muted-foreground">Users</th>
+            <th className="text-center py-3 px-2 font-medium text-muted-foreground min-w-[120px]">Week 1</th>
+            <th className="text-center py-3 px-2 font-medium text-muted-foreground min-w-[120px]">Week 2</th>
+            <th className="text-center py-3 px-2 font-medium text-muted-foreground min-w-[120px]">Week 4</th>
+            <th className="text-center py-3 px-2 font-medium text-muted-foreground min-w-[120px]">Week 8</th>
+          </tr>
+        </thead>
+        <tbody>
+          {comparisons.map((comparison) => (
+            <tr key={comparison.segmentId ?? 'all'} className="border-b last:border-0">
+              <td className="py-3 px-2">
+                <div className="font-medium">{comparison.segmentName}</div>
+              </td>
+              <td className="py-3 px-2 text-center text-muted-foreground">
+                {comparison.userCount.toLocaleString()}
+              </td>
+              <td className="py-3 px-2">
+                <RetentionCell value={comparison.retention.week1} maxValue={maxRetention} />
+              </td>
+              <td className="py-3 px-2">
+                <RetentionCell value={comparison.retention.week2} maxValue={maxRetention} />
+              </td>
+              <td className="py-3 px-2">
+                <RetentionCell value={comparison.retention.week4} maxValue={maxRetention} />
+              </td>
+              <td className="py-3 px-2">
+                <RetentionCell value={comparison.retention.week8} maxValue={maxRetention} />
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function RetentionCell({ value, maxValue }: { value: number; maxValue: number }) {
+  const getColor = (v: number): string => {
+    if (v >= 60) return 'bg-emerald-500';
+    if (v >= 40) return 'bg-emerald-400';
+    if (v >= 20) return 'bg-yellow-500';
+    if (v >= 10) return 'bg-orange-500';
+    return 'bg-red-500';
+  };
+
+  const width = maxValue > 0 ? (value / maxValue) * 100 : 0;
+
+  return (
+    <div className="flex items-center gap-2">
+      <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
+        <div
+          className={cn('h-full rounded-full transition-all duration-300', getColor(value))}
+          style={{ width: `${width}%` }}
+        />
+      </div>
+      <span className="text-xs font-medium w-10 text-right">{value}%</span>
     </div>
   );
 }

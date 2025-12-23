@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useParams } from 'wouter';
-import { Plus, MoreHorizontal, Copy, Trash2, Calendar, Clock, Repeat, Zap } from 'lucide-react';
+import { Plus, MoreHorizontal, Copy, Trash2, Calendar, Clock, Repeat, Zap, Users } from 'lucide-react';
 import type { Notification, Trigger } from '@localnotification/shared';
 import { api } from '@/lib/api';
 import { Button } from '@/components/ui/button';
@@ -20,6 +20,7 @@ interface NotificationFormData {
   name: string;
   title: string;
   body: string;
+  segmentId: string;
   triggerType: 'immediate' | 'scheduled' | 'recurring';
   scheduledAt: string;
   recurrenceInterval: 'daily' | 'weekly' | 'monthly';
@@ -32,6 +33,7 @@ const defaultFormData: NotificationFormData = {
   name: '',
   title: '',
   body: '',
+  segmentId: '',
   triggerType: 'immediate',
   scheduledAt: '',
   recurrenceInterval: 'daily',
@@ -88,6 +90,12 @@ export default function NotificationsPage() {
   const { data: notifications = [], isLoading } = useQuery({
     queryKey: ['notifications', params.appId],
     queryFn: () => api.notifications.list(params.appId),
+    enabled: !!params.appId,
+  });
+
+  const { data: segments = [] } = useQuery({
+    queryKey: ['segments', params.appId],
+    queryFn: () => api.segments.list(params.appId),
     enabled: !!params.appId,
   });
 
@@ -161,6 +169,7 @@ export default function NotificationsPage() {
       name: notification.name,
       title: notification.title,
       body: notification.body,
+      segmentId: notification.segmentId || '',
       triggerType: notification.trigger.type,
       scheduledAt: notification.trigger.scheduledAt || '',
       recurrenceInterval: notification.trigger.recurrence?.interval || 'daily',
@@ -208,6 +217,7 @@ export default function NotificationsPage() {
           name: formData.name,
           title: formData.title,
           body: formData.body,
+          segmentId: formData.segmentId || undefined,
           trigger,
           priority: formData.priority,
           enabled: formData.enabled,
@@ -219,11 +229,17 @@ export default function NotificationsPage() {
         name: formData.name,
         title: formData.title,
         body: formData.body,
+        segmentId: formData.segmentId || undefined,
         trigger,
         priority: formData.priority,
         enabled: formData.enabled,
       });
     }
+  };
+
+  const getSegmentName = (segmentId?: string) => {
+    if (!segmentId) return null;
+    return segments.find((s) => s.id === segmentId)?.name;
   };
 
   if (isLoading) {
@@ -270,6 +286,9 @@ export default function NotificationsPage() {
                     Notification
                   </th>
                   <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wider px-5 py-3">
+                    Segment
+                  </th>
+                  <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wider px-5 py-3">
                     Trigger
                   </th>
                   <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wider px-5 py-3">
@@ -283,6 +302,7 @@ export default function NotificationsPage() {
               <tbody className="divide-y">
                 {notifications.map((notification) => {
                   const TriggerIcon = getTriggerIcon(notification.trigger.type);
+                  const segmentName = getSegmentName(notification.segmentId);
                   return (
                     <tr key={notification.id} className="group hover:bg-muted/20 transition-colors">
                       <td className="px-5 py-4">
@@ -301,6 +321,16 @@ export default function NotificationsPage() {
                             {notification.title}
                           </div>
                         </button>
+                      </td>
+                      <td className="px-5 py-4">
+                        {segmentName ? (
+                          <Badge variant="outline" className="font-normal gap-1.5">
+                            <Users className="h-3 w-3" />
+                            {segmentName}
+                          </Badge>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">All users</span>
+                        )}
                       </td>
                       <td className="px-5 py-4">
                         <Badge variant="secondary" className="font-normal gap-1.5">
@@ -352,6 +382,7 @@ export default function NotificationsPage() {
           <div className="md:hidden space-y-3">
             {notifications.map((notification) => {
               const TriggerIcon = getTriggerIcon(notification.trigger.type);
+              const segmentName = getSegmentName(notification.segmentId);
               return (
                 <div key={notification.id} className="border rounded-xl p-4 space-y-3">
                   <div className="flex items-start justify-between gap-3">
@@ -397,6 +428,12 @@ export default function NotificationsPage() {
                     </DropdownMenu>
                   </div>
                   <div className="flex flex-wrap gap-2">
+                    {segmentName && (
+                      <Badge variant="outline" className="font-normal gap-1.5">
+                        <Users className="h-3 w-3" />
+                        {segmentName}
+                      </Badge>
+                    )}
                     <Badge variant="secondary" className="font-normal gap-1.5">
                       <TriggerIcon className="h-3 w-3" />
                       {formatTrigger(notification.trigger)}
@@ -453,6 +490,31 @@ export default function NotificationsPage() {
                   placeholder="Thanks for joining us..." 
                   required 
                 />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="segment" className="text-sm font-medium">
+                  Target Segment
+                  <span className="text-muted-foreground font-normal ml-1">(optional)</span>
+                </Label>
+                <Select 
+                  value={formData.segmentId || 'all'} 
+                  onValueChange={(v) => setFormData({ ...formData, segmentId: v === 'all' ? '' : v })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="All users" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All users</SelectItem>
+                    {segments.map((segment) => (
+                      <SelectItem key={segment.id} value={segment.id}>
+                        {segment.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Select a segment to target specific users, or leave as "All users" for everyone
+                </p>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="triggerType" className="text-sm font-medium">Trigger Type</Label>

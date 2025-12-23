@@ -81,12 +81,25 @@ export const api = {
     overview: (appId: string) => request<AnalyticsOverview>(`/analytics/${appId}/overview`),
     dau: (appId: string, days = 30) => request<{ history: { date: string; count: number }[] }>(`/analytics/${appId}/dau?days=${days}`),
     retention: (appId: string) => request<{ day1: number; day7: number; day30: number }>(`/analytics/${appId}/retention`),
-    retentionCohort: (appId: string, weeks = 8) => request<{
+    retentionCohort: (appId: string, weeks = 8, segmentId?: string) => request<{
       cohorts: {
         cohortDate: string;
         cohortSize: number;
         retention: (number | null)[];
       }[];
-    }>(`/analytics/${appId}/retention-cohort?weeks=${weeks}`),
+    }>(`/analytics/${appId}/retention-cohort?weeks=${weeks}${segmentId ? `&segmentId=${segmentId}` : ''}`),
+    retentionComparison: (appId: string) => request<{
+      comparisons: {
+        segmentId: string | null;
+        segmentName: string;
+        userCount: number;
+        retention: {
+          week1: number;
+          week2: number;
+          week4: number;
+          week8: number;
+        };
+      }[];
+    }>(`/analytics/${appId}/retention-comparison`),
   },
 };
