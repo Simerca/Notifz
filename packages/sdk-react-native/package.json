@@ -1,20 +1,25 @@
 {
-  "name": "@localnotification/sdk-react-native",
+  "name": "@aspect-music/localnotification-react-native",
   "version": "1.0.0",
+  "description": "React Native SDK for LocalNotification - Remote local notification management with user segmentation and analytics",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
+      "types": "./dist/index.d.ts",
       "import": "./dist/index.mjs",
-      "require": "./dist/index.js",
-      "types": "./dist/index.d.ts"
+      "require": "./dist/index.js"
     }
   },
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsup src/index.ts --format cjs,esm --dts",
     "dev": "tsup src/index.ts --format cjs,esm --dts --watch",
-    "clean": "rm -rf dist"
+    "clean": "rm -rf dist",
+    "prepublishOnly": "pnpm run build"
   },
   "peerDependencies": {
     "expo-notifications": ">=0.20.0",
@@ -23,11 +28,11 @@
   },
   "peerDependenciesMeta": {
     "expo-notifications": {
-      "optional": true
+      "optional": false
     }
   },
   "dependencies": {
-    "@localnotification/shared": "workspace:*"
+    "@aspect-music/localnotification-shared": "^1.0.0"
   },
   "devDependencies": {
     "@types/react": "^18.3.17",
@@ -41,8 +46,20 @@
     "react-native",
     "local-notification",
     "notifications",
-    "expo"
+    "expo",
+    "push-notifications",
+    "segmentation",
+    "analytics",
+    "retention"
   ],
-  "license": "MIT"
+  "author": "Aspect Music",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/aspect-music/localnotification"
+  },
+  "homepage": "https://github.com/aspect-music/localnotification#readme",
+  "bugs": {
+    "url": "https://github.com/aspect-music/localnotification/issues"
+  }
 }
-

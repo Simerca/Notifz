@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import type { SDKConfig, UserContext, Notification, UserProperties } from '@localnotification/shared';
+import type { SDKConfig, UserContext, Notification, UserProperties } from '@aspect-music/localnotification-shared';
 import { LocalNotificationSDK } from './sdk';
 
 interface SegmentInfo {

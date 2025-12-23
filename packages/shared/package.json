@@ -1,7 +1,7 @@
 {
-  "name": "@localnotification/shared",
+  "name": "@aspect-music/localnotification-shared",
   "version": "1.0.0",
-  "private": true,
+  "description": "Shared types and schemas for LocalNotification SDK",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
@@ -12,10 +12,26 @@
       "require": "./dist/index.js"
     }
   },
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsup src/index.ts --format cjs,esm --dts",
     "dev": "tsup src/index.ts --format cjs,esm --dts --watch",
-    "clean": "rm -rf dist"
+    "clean": "rm -rf dist",
+    "prepublishOnly": "pnpm run build"
+  },
+  "keywords": [
+    "localnotification",
+    "notifications",
+    "types",
+    "schemas"
+  ],
+  "author": "Aspect Music",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/aspect-music/localnotification"
   },
   "devDependencies": {
     "tsup": "^8.3.5",

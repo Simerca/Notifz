@@ -1,4 +1,4 @@
-import type { SDKConfig, UserContext, Notification, SyncResponse, Condition, UserProperties } from '@localnotification/shared';
+import type { SDKConfig, UserContext, Notification, SyncResponse, Condition, UserProperties } from '@aspect-music/localnotification-shared';
 import * as ExpoNotifications from 'expo-notifications';
 import { Platform, AppState, type AppStateStatus } from 'react-native';
 
