@@ -291,8 +291,8 @@ export class LocalNotificationSDK {
     const content: ExpoNotifications.NotificationContentInput = {
       title,
       body,
-      data: notification.data as Record<string, unknown> | undefined,
       sound: notification.sound ?? 'default',
+      ...(notification.data && Object.keys(notification.data).length > 0 ? { data: notification.data as Record<string, unknown> } : {}),
       ...(notification.badge !== undefined && notification.badge !== null ? { badge: notification.badge } : {}),
     };
 
@@ -376,8 +376,8 @@ export class LocalNotificationSDK {
       content: {
         title,
         body,
-        data: notification.data as Record<string, unknown> | undefined,
         sound: notification.sound ?? 'default',
+        ...(notification.data && Object.keys(notification.data).length > 0 ? { data: notification.data as Record<string, unknown> } : {}),
         ...(notification.badge !== undefined && notification.badge !== null ? { badge: notification.badge } : {}),
       },
       trigger: null,
