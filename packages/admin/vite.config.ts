@@ -12,7 +12,7 @@ export default defineConfig({
   server: {
     port: Number(process.env.PORT) || 3000,
     host: true,
-    allowedHosts: 'all',
+    allowedHosts: true,
     proxy: {
       '/api': {
         target: process.env.API_URL || 'http://localhost:3001',
@@ -23,7 +23,7 @@ export default defineConfig({
   preview: {
     port: Number(process.env.PORT) || 3000,
     host: true,
-    allowedHosts: 'all',
+    allowedHosts: true,
     proxy: {
       '/api': {
         target: process.env.API_URL || 'http://localhost:3001',
