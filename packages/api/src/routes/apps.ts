@@ -57,3 +57,4 @@ appsRouter.post('/:id/regenerate-key', async (c) => {
   return c.json(app);
 });
 
+

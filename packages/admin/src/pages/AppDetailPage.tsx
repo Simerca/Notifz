@@ -26,3 +26,4 @@ export default function AppDetailPage() {
   return <Redirect to={`/apps/${params.appId}/notifications`} />;
 }
 
+
