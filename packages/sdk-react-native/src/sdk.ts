@@ -357,9 +357,7 @@ export class LocalNotificationSDK {
   }
 
   private async cancelAllScheduled(): Promise<void> {
-    for (const identifier of this.scheduledIds.values()) {
-      await ExpoNotifications.cancelScheduledNotificationAsync(identifier);
-    }
+    await ExpoNotifications.cancelAllScheduledNotificationsAsync();
     this.scheduledIds.clear();
   }
 
