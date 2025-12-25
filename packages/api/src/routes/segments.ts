@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { nanoid } from 'nanoid';
 import { prisma } from '../db';
-import { CreateSegmentSchema, UpdateSegmentSchema, type Segment, type Condition } from '@localnotification/shared';
+import { CreateSegmentSchema, UpdateSegmentSchema, type Segment, type Condition } from '../types';
 
 export const segmentsRouter = new Hono();
 

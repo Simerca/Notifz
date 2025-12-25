@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { nanoid } from 'nanoid';
 import { prisma } from '../db';
-import { CreateNotificationSchema, UpdateNotificationSchema, type Notification } from '@localnotification/shared';
+import { CreateNotificationSchema, UpdateNotificationSchema, type Notification } from '../types';
 
 export const notificationsRouter = new Hono();
 

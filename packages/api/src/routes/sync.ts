@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { prisma } from '../db';
-import type { SyncResponse, Notification, Condition } from '@localnotification/shared';
+import type { SyncResponse, Notification, Condition } from '../types';
 
 export const syncRouter = new Hono();
 

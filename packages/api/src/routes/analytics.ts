@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { nanoid } from 'nanoid';
 import { prisma } from '../db';
-import type { AnalyticsOverview, Condition } from '@localnotification/shared';
+import type { AnalyticsOverview, Condition } from '../types';
 
 export const analyticsRouter = new Hono();
 

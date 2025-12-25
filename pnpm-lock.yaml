@@ -105,9 +105,6 @@ importers:
       '@hono/node-server':
         specifier: ^1.13.7
         version: 1.19.7(hono@4.11.1)
-      '@localnotification/shared':
-        specifier: workspace:*
-        version: link:../shared
       '@prisma/client':
         specifier: ^6.19.1
         version: 6.19.1(prisma@6.19.1(typescript@5.9.3))(typescript@5.9.3)

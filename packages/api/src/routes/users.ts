@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { nanoid } from 'nanoid';
 import { prisma } from '../db';
-import { UpsertUserSchema, type User } from '@localnotification/shared';
+import { UpsertUserSchema, type User } from '../types';
 
 export const usersRouter = new Hono();
 
