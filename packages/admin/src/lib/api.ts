@@ -7,7 +7,7 @@ import type {
   UpdateSegmentInput,
   User,
   AnalyticsOverview,
-} from '@localnotification/shared';
+} from './types';
 
 const API_BASE = '/api';
 

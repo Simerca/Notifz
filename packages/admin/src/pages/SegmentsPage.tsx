@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useParams } from 'wouter';
 import { Plus, MoreVertical, Trash2, Users } from 'lucide-react';
-import type { Segment, Condition } from '@localnotification/shared';
+import type { Segment, Condition } from '@/lib/types';
 import { api } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -334,7 +334,7 @@ function SegmentCard({ segment, onEdit, onDelete }: { segment: Segment; onEdit: 
       </CardHeader>
       <CardContent>
         <div className="flex flex-wrap gap-2">
-          {segment.rules.map((rule, i) => (
+          {segment.rules.map((rule: Condition, i: number) => (
             <Badge key={i} variant="outline" className="text-xs font-mono">
               {rule.field} {formatOperator(rule.operator)} {String(rule.value)}
             </Badge>

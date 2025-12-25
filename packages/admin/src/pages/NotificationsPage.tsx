@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useParams } from 'wouter';
 import { Plus, MoreHorizontal, Copy, Trash2, Calendar, Clock, Repeat, Zap, Users } from 'lucide-react';
-import type { Notification, Trigger } from '@localnotification/shared';
+import type { Notification, Trigger } from '@/lib/types';
 import { api } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';

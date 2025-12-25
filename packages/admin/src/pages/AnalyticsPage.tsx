@@ -50,7 +50,7 @@ export default function AnalyticsPage() {
     );
   }
 
-  const maxDau = Math.max(...(overview?.dauHistory.map((d) => d.count) || [1]));
+  const maxDau = Math.max(...(overview?.dauHistory.map((d: { date: string; count: number }) => d.count) || [1]));
 
   return (
     <div className="space-y-6">
@@ -161,7 +161,7 @@ export default function AnalyticsPage() {
           </CardHeader>
           <CardContent>
             <div className="h-40 flex items-end gap-1">
-              {overview?.dauHistory.slice(-30).map((day) => (
+              {overview?.dauHistory.slice(-30).map((day: { date: string; count: number }) => (
                 <div
                   key={day.date}
                   className="flex-1 bg-primary/80 hover:bg-primary transition-colors rounded-t cursor-pointer group relative"
@@ -347,18 +347,6 @@ function RetentionComparisonTable({ comparisons }: { comparisons: ComparisonData
       </div>
     );
   }
-
-  const getRetentionColor = (value: number): string => {
-    if (value >= 80) return 'text-emerald-400';
-    if (value >= 60) return 'text-emerald-500';
-    if (value >= 40) return 'text-yellow-500';
-    if (value >= 20) return 'text-orange-500';
-    return 'text-red-500';
-  };
-
-  const getBarWidth = (value: number): string => {
-    return `${Math.min(100, value)}%`;
-  };
 
   const maxRetention = Math.max(
     ...comparisons.flatMap((c) => [c.retention.week1, c.retention.week2, c.retention.week4, c.retention.week8])
