@@ -342,9 +342,23 @@ export class LocalNotificationSDK {
     }
   }
 
+  private getLocalizedContent(notification: Notification): { title: string; body: string } {
+    const userLocale = this.userContext.locale?.toLowerCase().split('-')[0] || 'en';
+    
+    if (notification.locales && notification.locales[userLocale]) {
+      return {
+        title: notification.locales[userLocale].title || notification.title,
+        body: notification.locales[userLocale].body || notification.body,
+      };
+    }
+    
+    return { title: notification.title, body: notification.body };
+  }
+
   private async scheduleNotification(notification: Notification): Promise<void> {
-    const title = this.interpolateText(notification.title);
-    const body = this.interpolateText(notification.body);
+    const { title: rawTitle, body: rawBody } = this.getLocalizedContent(notification);
+    const title = this.interpolateText(rawTitle);
+    const body = this.interpolateText(rawBody);
 
     const content: ExpoNotifications.NotificationContentInput = {
       title,
@@ -435,8 +449,9 @@ export class LocalNotificationSDK {
       throw new Error(`Notification ${notificationId} not found`);
     }
 
-    const title = this.interpolateText(notification.title);
-    const body = this.interpolateText(notification.body);
+    const { title: rawTitle, body: rawBody } = this.getLocalizedContent(notification);
+    const title = this.interpolateText(rawTitle);
+    const body = this.interpolateText(rawBody);
 
     await ExpoNotifications.scheduleNotificationAsync({
       content: {

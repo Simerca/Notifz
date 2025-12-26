@@ -1,6 +1,6 @@
 {
   "name": "localnotification-react-native-sdk",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "description": "React Native SDK for LocalNotification - Remote local notification management with user segmentation and analytics",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",

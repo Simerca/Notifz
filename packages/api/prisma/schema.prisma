@@ -25,6 +25,7 @@ model Notification {
   name       String
   title      String
   body       String
+  locales    String?
   data       String?
   trigger    String
   conditions String?

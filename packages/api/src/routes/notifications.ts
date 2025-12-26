@@ -11,6 +11,7 @@ function serializeNotification(n: {
   name: string;
   title: string;
   body: string;
+  locales: string | null;
   data: string | null;
   trigger: string;
   conditions: string | null;
@@ -29,6 +30,7 @@ function serializeNotification(n: {
     name: n.name,
     title: n.title,
     body: n.body,
+    locales: n.locales ? JSON.parse(n.locales) : undefined,
     data: n.data ? JSON.parse(n.data) : undefined,
     trigger: JSON.parse(n.trigger),
     conditions: n.conditions ? JSON.parse(n.conditions) : undefined,
@@ -87,6 +89,7 @@ notificationsRouter.post('/', async (c) => {
       name: parsed.data.name,
       title: parsed.data.title,
       body: parsed.data.body,
+      locales: parsed.data.locales ? JSON.stringify(parsed.data.locales) : null,
       data: parsed.data.data ? JSON.stringify(parsed.data.data) : null,
       trigger: JSON.stringify(parsed.data.trigger),
       conditions: parsed.data.conditions ? JSON.stringify(parsed.data.conditions) : null,
@@ -127,6 +130,7 @@ notificationsRouter.patch('/:id', async (c) => {
       name: parsed.data.name,
       title: parsed.data.title,
       body: parsed.data.body,
+      locales: parsed.data.locales !== undefined ? JSON.stringify(parsed.data.locales) : undefined,
       data: parsed.data.data !== undefined ? JSON.stringify(parsed.data.data) : undefined,
       trigger: parsed.data.trigger ? JSON.stringify(parsed.data.trigger) : undefined,
       conditions: parsed.data.conditions !== undefined ? JSON.stringify(parsed.data.conditions) : undefined,
@@ -180,6 +184,7 @@ notificationsRouter.post('/:id/duplicate', async (c) => {
       name: `${notification.name} (copy)`,
       title: notification.title,
       body: notification.body,
+      locales: notification.locales,
       data: notification.data,
       trigger: notification.trigger,
       conditions: notification.conditions,

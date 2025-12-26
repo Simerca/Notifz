@@ -24,12 +24,18 @@ export interface Trigger {
   recurrence?: Recurrence;
 }
 
+export interface LocalizedContent {
+  title: string;
+  body: string;
+}
+
 export interface Notification {
   id: string;
   appId: string;
   name: string;
   title: string;
   body: string;
+  locales?: Record<string, LocalizedContent>;
   data?: Record<string, unknown>;
   trigger: Trigger;
   conditions?: Condition[];

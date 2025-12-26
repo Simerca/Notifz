@@ -10,6 +10,7 @@ function serializeNotification(n: {
   name: string;
   title: string;
   body: string;
+  locales: string | null;
   data: string | null;
   trigger: string;
   conditions: string | null;
@@ -28,6 +29,7 @@ function serializeNotification(n: {
     name: n.name,
     title: n.title,
     body: n.body,
+    locales: n.locales ? JSON.parse(n.locales) : undefined,
     data: n.data ? JSON.parse(n.data) : undefined,
     trigger: JSON.parse(n.trigger),
     conditions: n.conditions ? JSON.parse(n.conditions) : undefined,

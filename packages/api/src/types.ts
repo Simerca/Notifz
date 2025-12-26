@@ -19,12 +19,18 @@ export const TriggerSchema = z.object({
     .optional(),
 });
 
+export const LocalizedContentSchema = z.object({
+  title: z.string(),
+  body: z.string(),
+});
+
 export const NotificationSchema = z.object({
   id: z.string(),
   appId: z.string(),
   name: z.string(),
   title: z.string(),
   body: z.string(),
+  locales: z.record(LocalizedContentSchema).optional(),
   data: z.record(z.unknown()).optional(),
   trigger: TriggerSchema,
   conditions: z.array(ConditionSchema).optional(),

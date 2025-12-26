@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useParams } from 'wouter';
-import { Plus, MoreHorizontal, Copy, Trash2, Calendar, Clock, Repeat, Zap, Users } from 'lucide-react';
-import type { Notification, Trigger } from '@/lib/types';
+import { Plus, MoreHorizontal, Copy, Trash2, Calendar, Clock, Repeat, Zap, Users, Globe } from 'lucide-react';
+import type { Notification, Trigger, LocalizedContent } from '@/lib/types';
 import { api } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,12 +14,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 
 interface NotificationFormData {
   name: string;
   title: string;
   body: string;
+  titleFr: string;
+  bodyFr: string;
   segmentId: string;
   triggerType: 'immediate' | 'scheduled' | 'recurring';
   scheduledAt: string;
@@ -33,6 +36,8 @@ const defaultFormData: NotificationFormData = {
   name: '',
   title: '',
   body: '',
+  titleFr: '',
+  bodyFr: '',
   segmentId: '',
   triggerType: 'immediate',
   scheduledAt: '',
@@ -169,6 +174,8 @@ export default function NotificationsPage() {
       name: notification.name,
       title: notification.title,
       body: notification.body,
+      titleFr: notification.locales?.fr?.title || '',
+      bodyFr: notification.locales?.fr?.body || '',
       segmentId: notification.segmentId || '',
       triggerType: notification.trigger.type,
       scheduledAt: notification.trigger.scheduledAt || '',
@@ -209,6 +216,11 @@ export default function NotificationsPage() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const trigger = buildTrigger();
+    
+    const locales: Record<string, LocalizedContent> | undefined = 
+      formData.titleFr || formData.bodyFr
+        ? { fr: { title: formData.titleFr || formData.title, body: formData.bodyFr || formData.body } }
+        : undefined;
 
     if (editingNotification) {
       updateMutation.mutate({
@@ -217,6 +229,7 @@ export default function NotificationsPage() {
           name: formData.name,
           title: formData.title,
           body: formData.body,
+          locales,
           segmentId: formData.segmentId || undefined,
           trigger,
           priority: formData.priority,
@@ -229,6 +242,7 @@ export default function NotificationsPage() {
         name: formData.name,
         title: formData.title,
         body: formData.body,
+        locales,
         segmentId: formData.segmentId || undefined,
         trigger,
         priority: formData.priority,
@@ -472,24 +486,61 @@ export default function NotificationsPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="title" className="text-sm font-medium">Title</Label>
-                <Input 
-                  id="title" 
-                  value={formData.title} 
-                  onChange={(e) => setFormData({ ...formData, title: e.target.value })} 
-                  placeholder="Welcome!" 
-                  required 
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="body" className="text-sm font-medium">Body</Label>
-                <Textarea 
-                  id="body" 
-                  value={formData.body} 
-                  onChange={(e) => setFormData({ ...formData, body: e.target.value })} 
-                  placeholder="Thanks for joining us..." 
-                  required 
-                />
+                <Label className="text-sm font-medium flex items-center gap-2">
+                  <Globe className="h-4 w-4" />
+                  Content
+                </Label>
+                <Tabs defaultValue="en" className="w-full">
+                  <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="en">English (default)</TabsTrigger>
+                    <TabsTrigger value="fr">Francais</TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="en" className="space-y-3 mt-3">
+                    <div className="space-y-2">
+                      <Label htmlFor="title" className="text-sm">Title</Label>
+                      <Input 
+                        id="title" 
+                        value={formData.title} 
+                        onChange={(e) => setFormData({ ...formData, title: e.target.value })} 
+                        placeholder="Welcome!" 
+                        required 
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="body" className="text-sm">Body</Label>
+                      <Textarea 
+                        id="body" 
+                        value={formData.body} 
+                        onChange={(e) => setFormData({ ...formData, body: e.target.value })} 
+                        placeholder="Thanks for joining us..." 
+                        required 
+                      />
+                    </div>
+                  </TabsContent>
+                  <TabsContent value="fr" className="space-y-3 mt-3">
+                    <div className="space-y-2">
+                      <Label htmlFor="titleFr" className="text-sm">Titre</Label>
+                      <Input 
+                        id="titleFr" 
+                        value={formData.titleFr} 
+                        onChange={(e) => setFormData({ ...formData, titleFr: e.target.value })} 
+                        placeholder="Bienvenue!" 
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="bodyFr" className="text-sm">Message</Label>
+                      <Textarea 
+                        id="bodyFr" 
+                        value={formData.bodyFr} 
+                        onChange={(e) => setFormData({ ...formData, bodyFr: e.target.value })} 
+                        placeholder="Merci de nous rejoindre..." 
+                      />
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Laissez vide pour utiliser la version anglaise
+                    </p>
+                  </TabsContent>
+                </Tabs>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="segment" className="text-sm font-medium">
