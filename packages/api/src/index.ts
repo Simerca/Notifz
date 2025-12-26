@@ -8,6 +8,7 @@ import { syncRouter } from './routes/sync';
 import { usersRouter } from './routes/users';
 import { segmentsRouter } from './routes/segments';
 import { analyticsRouter } from './routes/analytics';
+import { authRouter } from './routes/auth';
 
 const app = new Hono();
 
@@ -16,6 +17,7 @@ app.use('*', cors());
 
 app.get('/', (c) => c.json({ name: 'LocalNotification API', version: '2.0.0' }));
 
+app.route('/api/auth', authRouter);
 app.route('/api/apps', appsRouter);
 app.route('/api/notifications', notificationsRouter);
 app.route('/api/sync', syncRouter);

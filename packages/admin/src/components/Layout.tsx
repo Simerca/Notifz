@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation, useRoute } from 'wouter';
-import { Bell, LayoutGrid, BellRing, ChevronRight, Menu, X, Target, Users, BarChart3 } from 'lucide-react';
+import { Bell, LayoutGrid, BellRing, ChevronRight, Menu, X, Target, Users, BarChart3, LogOut } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { useAuth } from '@/lib/auth';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -17,6 +18,7 @@ export default function Layout({ children }: LayoutProps) {
   const [isUsersRoute] = useRoute('/apps/:appId/users');
   const [isAnalyticsRoute] = useRoute('/apps/:appId/analytics');
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { logout } = useAuth();
 
   const appId = params?.appId;
   const isInAppContext = !!appId;
@@ -129,8 +131,17 @@ export default function Layout({ children }: LayoutProps) {
         )}
       </nav>
 
-      <div className="p-3 border-t">
-        <div className="px-3 py-2 text-xs text-muted-foreground">
+      <div className="p-3 border-t space-y-2">
+        <Button
+          variant="ghost"
+          size="sm"
+          className="w-full justify-start text-muted-foreground hover:text-foreground"
+          onClick={logout}
+        >
+          <LogOut className="h-4 w-4 mr-2" />
+          Logout
+        </Button>
+        <div className="px-3 py-1 text-xs text-muted-foreground">
           v2.0.0
         </div>
       </div>
