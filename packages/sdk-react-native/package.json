@@ -1,6 +1,6 @@
 {
   "name": "localnotification-react-native-sdk",
-  "version": "1.0.8",
+  "version": "1.0.9",
   "description": "React Native SDK for LocalNotification - Remote local notification management with user segmentation and analytics",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
@@ -23,16 +23,21 @@
   },
   "peerDependencies": {
     "expo-notifications": ">=0.20.0",
+    "expo-localization": ">=14.0.0",
     "react": ">=18.0.0",
     "react-native": ">=0.70.0"
   },
   "peerDependenciesMeta": {
     "expo-notifications": {
       "optional": false
+    },
+    "expo-localization": {
+      "optional": false
     }
   },
   "devDependencies": {
     "@types/react": "^18.3.17",
+    "expo-localization": "^15.0.0",
     "expo-notifications": "^0.29.13",
     "react": "^18.3.1",
     "react-native": "^0.76.5",

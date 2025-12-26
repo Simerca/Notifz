@@ -1,6 +1,7 @@
 import type { SDKConfig, UserContext, Notification, SyncResponse, Condition, UserProperties, SegmentInfo } from './types';
 import * as ExpoNotifications from 'expo-notifications';
-import { Platform, AppState, type AppStateStatus, NativeModules } from 'react-native';
+import * as Localization from 'expo-localization';
+import { Platform, AppState, type AppStateStatus } from 'react-native';
 
 interface SessionResponse {
   sessionId?: string;
@@ -348,19 +349,17 @@ export class LocalNotificationSDK {
         return this.userContext.locale.toLowerCase().split('-')[0];
       }
       
-      if (Platform.OS === 'ios') {
-        const settings = NativeModules.SettingsManager?.settings;
-        const locale = settings?.AppleLocale || settings?.AppleLanguages?.[0] || 'en';
-        return locale.toLowerCase().split(/[-_]/)[0];
-      }
-      
-      if (Platform.OS === 'android') {
-        const locale = NativeModules.I18nManager?.localeIdentifier || 'en';
-        return locale.toLowerCase().split(/[-_]/)[0];
+      const locales = Localization.getLocales();
+      if (locales && locales.length > 0) {
+        const languageCode = locales[0].languageCode;
+        if (languageCode) {
+          return languageCode.toLowerCase();
+        }
       }
       
       return 'en';
-    } catch {
+    } catch (error) {
+      console.warn('[LocalNotificationSDK] Failed to get device locale:', error);
       return 'en';
     }
   }
@@ -368,13 +367,17 @@ export class LocalNotificationSDK {
   private getLocalizedContent(notification: Notification): { title: string; body: string } {
     const deviceLocale = this.getDeviceLocale();
     
+    console.log(`[LocalNotificationSDK] Device locale: ${deviceLocale}, Available locales:`, notification.locales ? Object.keys(notification.locales) : 'none');
+    
     if (notification.locales && notification.locales[deviceLocale]) {
+      console.log(`[LocalNotificationSDK] Using ${deviceLocale} locale for notification`);
       return {
         title: notification.locales[deviceLocale].title || notification.title,
         body: notification.locales[deviceLocale].body || notification.body,
       };
     }
     
+    console.log(`[LocalNotificationSDK] Using default (en) locale for notification`);
     return { title: notification.title, body: notification.body };
   }
 
