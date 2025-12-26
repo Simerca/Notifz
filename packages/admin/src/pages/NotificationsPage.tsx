@@ -76,6 +76,87 @@ function getTriggerIcon(type: string) {
   }
 }
 
+interface NotificationPreviewProps {
+  title: string;
+  body: string;
+  appName: string;
+}
+
+function NotificationPreview({ title, body, appName }: NotificationPreviewProps) {
+  const timeNow = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  
+  return (
+    <div className="space-y-4">
+      {/* iOS Preview */}
+      <div className="space-y-2">
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
+          </svg>
+          iOS
+        </div>
+        <div className="bg-[#f2f2f7] dark:bg-zinc-800 rounded-2xl p-3 shadow-sm border border-black/5 dark:border-white/10">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-semibold text-sm shadow-sm flex-shrink-0">
+              {appName.charAt(0).toUpperCase()}
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                  {appName}
+                </span>
+                <span className="text-xs text-gray-400 dark:text-gray-500">{timeNow}</span>
+              </div>
+              <p className="text-[15px] font-semibold text-gray-900 dark:text-white truncate mt-0.5">
+                {title}
+              </p>
+              <p className="text-[15px] text-gray-600 dark:text-gray-300 line-clamp-2 leading-snug">
+                {body}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Android Preview */}
+      <div className="space-y-2">
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M17.523 2.277a.75.75 0 01.137.961l-1.5 2.5a.75.75 0 11-1.283-.77l1.5-2.5a.75.75 0 011.146-.191zm-11.046 0a.75.75 0 011.146.191l1.5 2.5a.75.75 0 11-1.283.77l-1.5-2.5a.75.75 0 01.137-.961zM7 8a5 5 0 0110 0v1.293l2.354 2.353a.5.5 0 01.146.354V19a2 2 0 01-2 2H6.5a2 2 0 01-2-2v-7a.5.5 0 01.146-.354L7 9.293V8zm5-3a3 3 0 00-3 3v1.5a.5.5 0 01-.146.354L6.5 12.207V19a.5.5 0 00.5.5h10a.5.5 0 00.5-.5v-6.793l-2.354-2.353A.5.5 0 0115 9.5V8a3 3 0 00-3-3z"/>
+          </svg>
+          Android
+        </div>
+        <div className="bg-[#1f1f1f] rounded-xl p-3 shadow-lg border border-white/5">
+          <div className="flex items-start gap-3">
+            <div className="w-6 h-6 rounded-full bg-gradient-to-br from-green-400 to-green-500 flex items-center justify-center text-white font-semibold text-[10px] flex-shrink-0">
+              {appName.charAt(0).toUpperCase()}
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-xs font-medium text-gray-300">{appName}</span>
+                <span className="text-[10px] text-gray-500">{timeNow}</span>
+              </div>
+              <p className="text-[14px] font-medium text-white truncate mt-0.5">
+                {title}
+              </p>
+              <p className="text-[13px] text-gray-400 line-clamp-1 leading-snug">
+                {body}
+              </p>
+            </div>
+            <svg className="w-5 h-5 text-gray-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <p className="text-xs text-muted-foreground text-center">
+        Preview is approximate. Actual appearance may vary.
+      </p>
+    </div>
+  );
+}
+
 export default function NotificationsPage() {
   const params = useParams<{ appId: string }>();
   const queryClient = useQueryClient();
@@ -85,6 +166,7 @@ export default function NotificationsPage() {
   const [editingNotification, setEditingNotification] = useState<Notification | null>(null);
   const [deleteNotification, setDeleteNotification] = useState<Notification | null>(null);
   const [formData, setFormData] = useState<NotificationFormData>(defaultFormData);
+  const [previewLang, setPreviewLang] = useState<'en' | 'fr'>('en');
 
   const { data: app } = useQuery({
     queryKey: ['apps', params.appId],
@@ -165,6 +247,7 @@ export default function NotificationsPage() {
   const handleOpenCreate = () => {
     setEditingNotification(null);
     setFormData(defaultFormData);
+    setPreviewLang('en');
     setDialogOpen(true);
   };
 
@@ -184,6 +267,7 @@ export default function NotificationsPage() {
       priority: notification.priority,
       enabled: notification.enabled,
     });
+    setPreviewLang('en');
     setDialogOpen(true);
   };
 
@@ -191,6 +275,7 @@ export default function NotificationsPage() {
     setDialogOpen(false);
     setEditingNotification(null);
     setFormData(defaultFormData);
+    setPreviewLang('en');
   };
 
   const buildTrigger = (): Trigger => {
@@ -464,7 +549,7 @@ export default function NotificationsPage() {
       )}
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
           <form onSubmit={handleSubmit}>
             <DialogHeader>
               <DialogTitle>
@@ -474,178 +559,204 @@ export default function NotificationsPage() {
                 Configure the notification settings
               </DialogDescription>
             </DialogHeader>
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="name" className="text-sm font-medium">Name</Label>
-                <Input 
-                  id="name" 
-                  value={formData.name} 
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })} 
-                  placeholder="Welcome notification" 
-                  required 
-                />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-sm font-medium flex items-center gap-2">
-                  <Globe className="h-4 w-4" />
-                  Content
-                </Label>
-                <Tabs defaultValue="en" className="w-full">
-                  <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="en">English (default)</TabsTrigger>
-                    <TabsTrigger value="fr">Francais</TabsTrigger>
-                  </TabsList>
-                  <TabsContent value="en" className="space-y-3 mt-3">
-                    <div className="space-y-2">
-                      <Label htmlFor="title" className="text-sm">Title</Label>
-                      <Input 
-                        id="title" 
-                        value={formData.title} 
-                        onChange={(e) => setFormData({ ...formData, title: e.target.value })} 
-                        placeholder="Welcome!" 
-                        required 
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="body" className="text-sm">Body</Label>
-                      <Textarea 
-                        id="body" 
-                        value={formData.body} 
-                        onChange={(e) => setFormData({ ...formData, body: e.target.value })} 
-                        placeholder="Thanks for joining us..." 
-                        required 
-                      />
-                    </div>
-                  </TabsContent>
-                  <TabsContent value="fr" className="space-y-3 mt-3">
-                    <div className="space-y-2">
-                      <Label htmlFor="titleFr" className="text-sm">Titre</Label>
-                      <Input 
-                        id="titleFr" 
-                        value={formData.titleFr} 
-                        onChange={(e) => setFormData({ ...formData, titleFr: e.target.value })} 
-                        placeholder="Bienvenue!" 
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="bodyFr" className="text-sm">Message</Label>
-                      <Textarea 
-                        id="bodyFr" 
-                        value={formData.bodyFr} 
-                        onChange={(e) => setFormData({ ...formData, bodyFr: e.target.value })} 
-                        placeholder="Merci de nous rejoindre..." 
-                      />
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      Laissez vide pour utiliser la version anglaise
-                    </p>
-                  </TabsContent>
-                </Tabs>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="segment" className="text-sm font-medium">
-                  Target Segment
-                  <span className="text-muted-foreground font-normal ml-1">(optional)</span>
-                </Label>
-                <Select 
-                  value={formData.segmentId || 'all'} 
-                  onValueChange={(v) => setFormData({ ...formData, segmentId: v === 'all' ? '' : v })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="All users" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All users</SelectItem>
-                    {segments.map((segment) => (
-                      <SelectItem key={segment.id} value={segment.id}>
-                        {segment.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <p className="text-xs text-muted-foreground">
-                  Select a segment to target specific users, or leave as "All users" for everyone
-                </p>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="triggerType" className="text-sm font-medium">Trigger Type</Label>
-                <Select 
-                  value={formData.triggerType} 
-                  onValueChange={(v: NotificationFormData['triggerType']) => setFormData({ ...formData, triggerType: v })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="immediate">Immediate</SelectItem>
-                    <SelectItem value="scheduled">Scheduled</SelectItem>
-                    <SelectItem value="recurring">Recurring</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              {formData.triggerType === 'scheduled' && (
+            <div className="grid md:grid-cols-2 gap-6 py-4">
+              <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="scheduledAt" className="text-sm font-medium">Schedule Date & Time</Label>
+                  <Label htmlFor="name" className="text-sm font-medium">Name</Label>
                   <Input 
-                    id="scheduledAt" 
-                    type="datetime-local" 
-                    value={formData.scheduledAt} 
-                    onChange={(e) => setFormData({ ...formData, scheduledAt: e.target.value })} 
+                    id="name" 
+                    value={formData.name} 
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })} 
+                    placeholder="Welcome notification" 
+                    required 
                   />
                 </div>
-              )}
-              {formData.triggerType === 'recurring' && (
-                <>
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium flex items-center gap-2">
+                    <Globe className="h-4 w-4" />
+                    Content
+                  </Label>
+                  <Tabs value={previewLang} onValueChange={(v) => setPreviewLang(v as 'en' | 'fr')} className="w-full">
+                    <TabsList className="grid w-full grid-cols-2">
+                      <TabsTrigger value="en">English (default)</TabsTrigger>
+                      <TabsTrigger value="fr">Français</TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="en" className="space-y-3 mt-3">
+                      <div className="space-y-2">
+                        <Label htmlFor="title" className="text-sm">Title</Label>
+                        <Input 
+                          id="title" 
+                          value={formData.title} 
+                          onChange={(e) => setFormData({ ...formData, title: e.target.value })} 
+                          placeholder="Welcome!" 
+                          required 
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="body" className="text-sm">Body</Label>
+                        <Textarea 
+                          id="body" 
+                          value={formData.body} 
+                          onChange={(e) => setFormData({ ...formData, body: e.target.value })} 
+                          placeholder="Thanks for joining us..." 
+                          required 
+                        />
+                      </div>
+                    </TabsContent>
+                    <TabsContent value="fr" className="space-y-3 mt-3">
+                      <div className="space-y-2">
+                        <Label htmlFor="titleFr" className="text-sm">Titre</Label>
+                        <Input 
+                          id="titleFr" 
+                          value={formData.titleFr} 
+                          onChange={(e) => setFormData({ ...formData, titleFr: e.target.value })} 
+                          placeholder="Bienvenue!" 
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="bodyFr" className="text-sm">Message</Label>
+                        <Textarea 
+                          id="bodyFr" 
+                          value={formData.bodyFr} 
+                          onChange={(e) => setFormData({ ...formData, bodyFr: e.target.value })} 
+                          placeholder="Merci de nous rejoindre..." 
+                        />
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Laissez vide pour utiliser la version anglaise
+                      </p>
+                    </TabsContent>
+                  </Tabs>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="segment" className="text-sm font-medium">
+                    Target Segment
+                    <span className="text-muted-foreground font-normal ml-1">(optional)</span>
+                  </Label>
+                  <Select 
+                    value={formData.segmentId || 'all'} 
+                    onValueChange={(v) => setFormData({ ...formData, segmentId: v === 'all' ? '' : v })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="All users" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All users</SelectItem>
+                      {segments.map((segment) => (
+                        <SelectItem key={segment.id} value={segment.id}>
+                          {segment.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    Select a segment to target specific users, or leave as "All users" for everyone
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="triggerType" className="text-sm font-medium">Trigger Type</Label>
+                  <Select 
+                    value={formData.triggerType} 
+                    onValueChange={(v: NotificationFormData['triggerType']) => setFormData({ ...formData, triggerType: v })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="immediate">Immediate</SelectItem>
+                      <SelectItem value="scheduled">Scheduled</SelectItem>
+                      <SelectItem value="recurring">Recurring</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                {formData.triggerType === 'scheduled' && (
                   <div className="space-y-2">
-                    <Label htmlFor="recurrenceInterval" className="text-sm font-medium">Recurrence</Label>
-                    <Select
-                      value={formData.recurrenceInterval}
-                      onValueChange={(v: NotificationFormData['recurrenceInterval']) => 
-                        setFormData({ ...formData, recurrenceInterval: v })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="daily">Daily</SelectItem>
-                        <SelectItem value="weekly">Weekly</SelectItem>
-                        <SelectItem value="monthly">Monthly</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="recurrenceTime" className="text-sm font-medium">Time</Label>
+                    <Label htmlFor="scheduledAt" className="text-sm font-medium">Schedule Date & Time</Label>
                     <Input 
-                      id="recurrenceTime" 
-                      type="time" 
-                      value={formData.recurrenceTime} 
-                      onChange={(e) => setFormData({ ...formData, recurrenceTime: e.target.value })} 
+                      id="scheduledAt" 
+                      type="datetime-local" 
+                      value={formData.scheduledAt} 
+                      onChange={(e) => setFormData({ ...formData, scheduledAt: e.target.value })} 
                     />
                   </div>
-                </>
-              )}
-              <div className="space-y-2">
-                <Label htmlFor="priority" className="text-sm font-medium">Priority</Label>
-                <Select 
-                  value={formData.priority} 
-                  onValueChange={(v: NotificationFormData['priority']) => setFormData({ ...formData, priority: v })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="low">Low</SelectItem>
-                    <SelectItem value="default">Default</SelectItem>
-                    <SelectItem value="high">High</SelectItem>
-                  </SelectContent>
-                </Select>
+                )}
+                {formData.triggerType === 'recurring' && (
+                  <>
+                    <div className="space-y-2">
+                      <Label htmlFor="recurrenceInterval" className="text-sm font-medium">Recurrence</Label>
+                      <Select
+                        value={formData.recurrenceInterval}
+                        onValueChange={(v: NotificationFormData['recurrenceInterval']) => 
+                          setFormData({ ...formData, recurrenceInterval: v })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="daily">Daily</SelectItem>
+                          <SelectItem value="weekly">Weekly</SelectItem>
+                          <SelectItem value="monthly">Monthly</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="recurrenceTime" className="text-sm font-medium">Time</Label>
+                      <Input 
+                        id="recurrenceTime" 
+                        type="time" 
+                        value={formData.recurrenceTime} 
+                        onChange={(e) => setFormData({ ...formData, recurrenceTime: e.target.value })} 
+                      />
+                    </div>
+                  </>
+                )}
+                <div className="space-y-2">
+                  <Label htmlFor="priority" className="text-sm font-medium">Priority</Label>
+                  <Select 
+                    value={formData.priority} 
+                    onValueChange={(v: NotificationFormData['priority']) => setFormData({ ...formData, priority: v })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="low">Low</SelectItem>
+                      <SelectItem value="default">Default</SelectItem>
+                      <SelectItem value="high">High</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex items-center justify-between py-2">
+                  <Label htmlFor="enabled" className="text-sm font-medium">Enabled</Label>
+                  <Switch 
+                    id="enabled" 
+                    checked={formData.enabled} 
+                    onCheckedChange={(checked) => setFormData({ ...formData, enabled: checked })} 
+                  />
+                </div>
               </div>
-              <div className="flex items-center justify-between py-2">
-                <Label htmlFor="enabled" className="text-sm font-medium">Enabled</Label>
-                <Switch 
-                  id="enabled" 
-                  checked={formData.enabled} 
-                  onCheckedChange={(checked) => setFormData({ ...formData, enabled: checked })} 
+
+              {/* Preview Column */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="text-sm font-medium text-muted-foreground">Preview</div>
+                  <div className="text-xs text-muted-foreground">
+                    {previewLang === 'fr' ? '🇫🇷 Français' : '🇬🇧 English'}
+                  </div>
+                </div>
+                <NotificationPreview 
+                  title={
+                    previewLang === 'fr' 
+                      ? (formData.titleFr || formData.title || 'Titre de notification')
+                      : (formData.title || 'Notification Title')
+                  } 
+                  body={
+                    previewLang === 'fr'
+                      ? (formData.bodyFr || formData.body || 'Corps de la notification...')
+                      : (formData.body || 'Notification body text...')
+                  } 
+                  appName={app?.name || 'App'}
                 />
               </div>
             </div>
