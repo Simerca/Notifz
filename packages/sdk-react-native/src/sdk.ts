@@ -1,6 +1,6 @@
 import type { SDKConfig, UserContext, Notification, SyncResponse, Condition, UserProperties, SegmentInfo } from './types';
 import * as ExpoNotifications from 'expo-notifications';
-import { Platform, AppState, type AppStateStatus } from 'react-native';
+import { Platform, AppState, type AppStateStatus, NativeModules } from 'react-native';
 
 interface SessionResponse {
   sessionId?: string;
@@ -342,13 +342,36 @@ export class LocalNotificationSDK {
     }
   }
 
+  private getDeviceLocale(): string {
+    try {
+      if (this.userContext.locale) {
+        return this.userContext.locale.toLowerCase().split('-')[0];
+      }
+      
+      if (Platform.OS === 'ios') {
+        const settings = NativeModules.SettingsManager?.settings;
+        const locale = settings?.AppleLocale || settings?.AppleLanguages?.[0] || 'en';
+        return locale.toLowerCase().split(/[-_]/)[0];
+      }
+      
+      if (Platform.OS === 'android') {
+        const locale = NativeModules.I18nManager?.localeIdentifier || 'en';
+        return locale.toLowerCase().split(/[-_]/)[0];
+      }
+      
+      return 'en';
+    } catch {
+      return 'en';
+    }
+  }
+
   private getLocalizedContent(notification: Notification): { title: string; body: string } {
-    const userLocale = this.userContext.locale?.toLowerCase().split('-')[0] || 'en';
+    const deviceLocale = this.getDeviceLocale();
     
-    if (notification.locales && notification.locales[userLocale]) {
+    if (notification.locales && notification.locales[deviceLocale]) {
       return {
-        title: notification.locales[userLocale].title || notification.title,
-        body: notification.locales[userLocale].body || notification.body,
+        title: notification.locales[deviceLocale].title || notification.title,
+        body: notification.locales[deviceLocale].body || notification.body,
       };
     }
     
