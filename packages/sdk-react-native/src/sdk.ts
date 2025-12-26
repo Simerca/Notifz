@@ -17,6 +17,7 @@ export class LocalNotificationSDK {
   private lastVersion = 0;
   private currentSessionId: string | null = null;
   private appStateSubscription: { remove: () => void } | null = null;
+  private initialized = false;
 
   constructor(config: SDKConfig) {
     this.config = {
@@ -27,14 +28,31 @@ export class LocalNotificationSDK {
   }
 
   async initialize(): Promise<void> {
-    await this.requestPermissions();
-    await this.configureNotifications();
-    await this.sync();
-    this.startAutoSync();
+    try {
+      await this.requestPermissions();
+      await this.configureNotifications();
+      
+      try {
+        await this.sync();
+      } catch (syncError) {
+        console.warn('[LocalNotificationSDK] Initial sync failed, will retry:', syncError);
+      }
+      
+      this.startAutoSync();
 
-    if (this.config.trackSessions) {
-      this.startSessionTracking();
+      if (this.config.trackSessions) {
+        this.startSessionTracking();
+      }
+      
+      this.initialized = true;
+    } catch (error) {
+      console.error('[LocalNotificationSDK] Initialization failed:', error);
+      throw error;
     }
+  }
+
+  isInitialized(): boolean {
+    return this.initialized;
   }
 
   private async requestPermissions(): Promise<boolean> {
