@@ -266,6 +266,46 @@ export class LocalNotificationSDK {
     });
   }
 
+  private calculateNextOccurrence(
+    interval: string,
+    hours: number,
+    minutes: number,
+    daysOfWeek?: number[],
+    dayOfMonth?: number
+  ): Date | null {
+    const now = new Date();
+    const target = new Date();
+    target.setHours(hours, minutes, 0, 0);
+
+    if (interval === 'daily') {
+      if (target <= now) {
+        target.setDate(target.getDate() + 1);
+      }
+      return target;
+    }
+
+    if (interval === 'weekly' && daysOfWeek?.length) {
+      const targetDay = daysOfWeek[0];
+      const currentDay = now.getDay();
+      let daysUntil = targetDay - currentDay;
+      if (daysUntil < 0 || (daysUntil === 0 && target <= now)) {
+        daysUntil += 7;
+      }
+      target.setDate(target.getDate() + daysUntil);
+      return target;
+    }
+
+    if (interval === 'monthly' && dayOfMonth) {
+      target.setDate(dayOfMonth);
+      if (target <= now) {
+        target.setMonth(target.getMonth() + 1);
+      }
+      return target;
+    }
+
+    return null;
+  }
+
   private async scheduleEligibleNotifications(): Promise<void> {
     await this.cancelAllScheduled();
 
@@ -316,29 +356,39 @@ export class LocalNotificationSDK {
           const { interval, time, daysOfWeek, dayOfMonth } = notification.trigger.recurrence;
           const [hours, minutes] = time.split(':').map(Number);
 
-          if (interval === 'daily') {
-            trigger = {
-              type: ExpoNotifications.SchedulableTriggerInputTypes.CALENDAR,
-              hour: hours,
-              minute: minutes,
-              repeats: true,
-            };
-          } else if (interval === 'weekly' && daysOfWeek?.length) {
-            trigger = {
-              type: ExpoNotifications.SchedulableTriggerInputTypes.CALENDAR,
-              weekday: daysOfWeek[0] + 1,
-              hour: hours,
-              minute: minutes,
-              repeats: true,
-            };
-          } else if (interval === 'monthly' && dayOfMonth) {
-            trigger = {
-              type: ExpoNotifications.SchedulableTriggerInputTypes.CALENDAR,
-              day: dayOfMonth,
-              hour: hours,
-              minute: minutes,
-              repeats: true,
-            };
+          if (Platform.OS === 'ios') {
+            if (interval === 'daily') {
+              trigger = {
+                type: ExpoNotifications.SchedulableTriggerInputTypes.CALENDAR,
+                hour: hours,
+                minute: minutes,
+                repeats: true,
+              };
+            } else if (interval === 'weekly' && daysOfWeek?.length) {
+              trigger = {
+                type: ExpoNotifications.SchedulableTriggerInputTypes.CALENDAR,
+                weekday: daysOfWeek[0] + 1,
+                hour: hours,
+                minute: minutes,
+                repeats: true,
+              };
+            } else if (interval === 'monthly' && dayOfMonth) {
+              trigger = {
+                type: ExpoNotifications.SchedulableTriggerInputTypes.CALENDAR,
+                day: dayOfMonth,
+                hour: hours,
+                minute: minutes,
+                repeats: true,
+              };
+            }
+          } else {
+            const nextDate = this.calculateNextOccurrence(interval, hours, minutes, daysOfWeek, dayOfMonth);
+            if (nextDate) {
+              trigger = {
+                type: ExpoNotifications.SchedulableTriggerInputTypes.DATE,
+                date: nextDate,
+              };
+            }
           }
         }
         break;
